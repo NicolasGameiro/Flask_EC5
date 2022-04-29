@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1> Calcul de solive </h1>
+    </br>
+    <p>
+        Cette page permet de vérifier qu'une section de poutre respecte les ELS et ELU pour un solivage.
+    </p>
+    
+    </br>
+    <div class="row">
+        <div class="col-6 text-center">
+            <img class="rounded" width="520" height="300" src="../static/images/solive.jpg">
+        </div>
+    </div>
+  
+  
+
+<form action="{{ url_for('solive') }}" method='POST'>
+
+    <h2> 1. Géométrie </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+    <div class="row">
+        <div class="col-2">
+            <label for="hauteur" class="form-label">Hauteur h (cm) </label>
+            <input type="number" class="form-control" id="hauteur" name="hauteur" value="22">
+        </div>
+        <div class="col-2">
+            <label for="largeur" class="form-label">Largeur b (cm) </label>
+            <input type="number" class="form-control" name="largeur" value="10">
+        </div>
+        <div class="col-2">
+            <label for="entraxe" class="form-label">Entraxe E (cm) </label>
+            <input type="number" class="form-control" name="entraxe" value="100">
+        </div>
+        <div class="col-2">
+            <label for="porte" class="form-label"> Portée L (cm) </label>
+            <input type="number" class="form-control" name="porte" value="400">
+        </div>
+        <div class="col-2">
+            <label for="appuie" class="form-label"> Appuie a (cm) </label>
+            <input type="number" class="form-control" name="appuie" value="20">
+        </div>
+    </div>
+    
+    </br>
+    <h2> 2. Environnemennt : </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+    <div class="row">
+        <div class="col-3">
+        <label for="C" class="form-label"> Type de bois </label>
+        <select name="type_bois" class="form-select" aria-label="Default select example">
+            <option value="BM" selected>Bois massif</option>
+            <option value="BLC">Bois lamelé collé</option>
+            <option value="LVL">LVL</option>
+        </select>
+        </div>
+        <div class="col-3">
+        <label for="C" class="form-label">Classse de qualité du bois </label>
+        <select name="classe_bois" class="form-select" aria-label="Default select example">
+            <option value="C22">C22</option>
+            <option value="C24" selected>C24</option>
+            <option value="C26">C26</option>
+        </select>
+        </div>
+        <div class="col-3">
+        <label for="C" class="form-label">Classe de service </label>
+        <select name="classe_service" class="form-select" aria-label="Default select example">
+            <option value="classe 1" selected>classe 1</option>
+            <option value="classe 2">classe 2</option>
+            <option value="classe 3">classe 3</option>
+        </select>
+        </div>
+    </div>
+    
+    </br>
+    <h2> 3. Chargement : </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+    
+    <div class="row">
+        <div class="col-3">
+            <label for="perm" class="form-label"> Charge Permanante G (kN/m2) </label>
+            <input type="text" class="form-control" name="G" value="0.5">
+        </div>
+        <div class="col-3">
+        <label for="C" class="form-label">Catégorie charge d'exploitation Q (kN/m2) </label>
+        <select name="Cat_charge" class="form-select" aria-label="Default select example">
+            <option value="1.5" selected>A : Habitation (1.5 kN/m2) </option>
+            <option value="2.5">B : Bureaux (2.5 kN/m2)</option>
+            <option value="2.5">C : Lieux de réunion (2.5 kN/m2)</option>
+            <option value="5">D : Commerce (5 kN/m2)</option>
+            <option value="7.5">E : Stockage (7.5 kN/m2)</option>
+        </select>
+        </div>
+    </div>
+    
+    </br>
+    <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="exampleCheck1">
+        <label class="form-check-label" for="exampleCheck1">Calcul du second ordre</label>
+    </div>
+    
+    </br>
+    <button type="submit" class="btn btn-primary"> Calculer ! </button>
+</form>
+
+    {% if res is defined %}
+    </br> 
+    <h2> 4. Résultats </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+    
+        <p> La charge linéique ELU vaut {{ q }} kN. </p>
+        
+    <div class="col">
+    <table class="table align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th scope="col">Contrainte (MPa) </th>
+          <th scope="col">Traction-compression</th>
+          <th scope="col">Flexion</th>
+          <th scope="col">Cisaillement</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Contrainte (MPa)</th>
+          {% for s in sig[:3] %}
+          <td style="width: 25%">{{ s }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row">Taux de travail</th>
+            {% for r in res[:3] %}
+            <td style="width: 25%" {% if r > 100 %} class="table-danger" {% else %} class="table-success" {% endif %}>{{ r }} %</td>
+            {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    
+    <form action="{{ url_for('report') }}" method='POST'>   
+        <button type="submit" class="btn btn-success"> Enregistrer les résultats</button>
+    </form>
+    <button type="button" class="btn btn-danger"> Effacer les résultats </button>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

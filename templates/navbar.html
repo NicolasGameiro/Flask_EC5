@@ -1,0 +1,28 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid d-flex">
+      
+    <img class="d-flex bi me-2" width="160" height="25" src="../static/images/Logo_FRAMATOME_Blanc.png" >
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class=" collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}">Accueil</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('solive') }}">Calcul de solive</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Calcul de panne </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('bolt') }}">Calcul boulons</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Calcul de ferme</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
