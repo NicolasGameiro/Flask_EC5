@@ -61,20 +61,20 @@ type_charpente1 = "symetrique"
 ep_dalle = 20 # cm
 
 #3. epaisseur du batiment
-largeur_batiment = 800 #cm portée exterieur mur
-axe_ferme = 500
+largeur_batiment = 350 #cm portée exterieur mur
+axe_ferme = 350-10
 
 #4. epaisseur de mur
 ep_mur1 = 20 # cm
-ep_mur2 = 30 #cm
+ep_mur2 = 20 #cm
 
 #5. hauteur de mur
-h_mur1 = 300 # cm
-h_mur2 = 300 # cm
+h_mur1 = 210 # cm
+h_mur2 = 280 # cm
 
 #definir une position a part sinon par defaut au niveau du mur le plus bas
 
-h_archi = 700 #cm par rapport au haut de la dalle (et en bas de la dalle !)
+h_archi = 380 #cm par rapport au haut de la dalle (et en bas de la dalle !)
 ep_couv = 10 #cm
 ep_chevron = 10 #cm
 
@@ -176,6 +176,8 @@ ax1.add_patch(Rectangle((axe_ferme-b_poinçon/2, h_archi+ep_dalle-L_poinçon), b
 L_entrait = largeur_batiment-ep_mur1-ep_mur2
 h_entrait = 20 #cm
 ax1.add_patch(Rectangle((ep_mur1, min(h_mur1,h_mur2)), L_entrait, h_entrait , color='k', fill=False, lw=0.5,label="entrait"))
+
+"""
 #jambe de force
 h_jdf = 0.5*L_poinçon + h_mur1 + ep_dalle
 b_jdf = 20 #cm
@@ -191,6 +193,7 @@ y_jdf = [h_jdf,
          h_jdf+10+b_jdf ,
          h_jdf]
 ax1.add_patch(Polygon(xy=list(zip(x_jdf,y_jdf)), fill=True, color='m',alpha = 1,lw=0,label='jdf'))
+"""
 
 def charge_horizontale(ax,x,y,L) :
     for i in range(0,21) :
