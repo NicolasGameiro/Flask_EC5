@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block content %}
+   
+{% for message in get_flashed_messages() %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+{% endfor %}
+
+<div class="container">
+
+    <h1> Génération de la géométrie : </h1>
+    <hr class="col-6 col-md-6 mb-5" >
+
+    <div class="row">
+        <div class="col">
+        <div class="shadow p-3 mb-5 bg-body rounded">
+            <h1> Ajouter un noeud : </h1>
+                </br>
+            <form method='POST'>
+                <label for="hauteur" class="form-label"> X (cm) </label>
+                <input type="number" class="form-control" id="hauteur" name="x" value="0">
+                <label for="hauteur" class="form-label"> Y (cm) </label>
+                <input type="number" class="form-control" id="hauteur" name="y" value="0">                
+                <label for="hauteur" class="form-label"> Z (cm) </label>
+                <input type="number" class="form-control" id="hauteur" name="z" value="0">
+                </br>
+                <button type="submit" class="btn btn-primary" name="button" value="add_node"> Ajouter </button>
+                <button type="submit" class="btn btn-secondary" name="button" value="del_node"> Reset </button>
+                <button type="submit" class="btn btn-danger" name="button" value="del_all_node"> Reset all </button>
+            </form>
+            </div>
+        </div>
+    
+
+    <div class="col">
+        <div class="shadow p-3 mb-5 bg-body rounded">
+        <h1> Tableau de coordonnées des noeuds du maillage : </h1>
+        
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col"> X </th>
+              <th scope="col"> Y </th>
+              <th scope="col"> Z </th>
+            </tr>
+          </thead>
+        
+        {% if NL != [] %}
+          <tbody>
+          
+          {% for i in range(NL|length) %}
+            <tr>
+                <th scope="row">{{ i + 1 }}</th>
+                <td>{{ NL[i][0] }}</td>
+                <td>{{ NL[i][1] }}</td>
+                <td>{{ NL[i][2] }}</td>
+            </tr>  
+          {% endfor %}
+          </tbody>
+        {% endif %}
+        </table>
+    </div>
+    </div>
+  </div>
+</div>
+
+<hr class="col-6 col-md-6 mb-5" >
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h1> Ajouter un element : </h1>
+                </br>
+            <form method='POST'>
+                <label for="hauteur" class="form-label"> node 1 (cm) </label>
+                <input type="number" class="form-control" id="hauteur" name="n1" value="1">
+                <label for="hauteur" class="form-label"> node 2 (cm) </label>
+                <input type="number" class="form-control" id="hauteur" name="n2" value="2">                
+                </br>
+                <button type="submit" class="btn btn-primary" name="button" value="add_elem"> Ajouter </button>
+                <button type="submit" class="btn btn-secondary" name="button" value="del_elem"> Reset </button>
+                <button type="submit" class="btn btn-danger" name="button" value="del_all_elem"> Reset all </button>
+            </form>
+        </div>
+    
+
+    <div class="col">
+    
+        <h1> Tableau de coordonnées des elements du maillage : </h1>
+        
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">node 1</th>
+              <th scope="col">node 2</th>
+            </tr>
+          </thead>
+        
+        {% if EL != [] %}
+          <tbody>
+          
+          {% for i in range(EL|length) %}
+            <tr>
+                <th scope="row">{{ i + 1 }}</th>
+                <td>{{ EL[i][0] }}</td>
+                <td>{{ EL[i][1] }}</td>
+            </tr>  
+          {% endfor %}
+          </tbody>
+        {% endif %}
+        </table>
+
+    </div>
+  </div>
+  </br>
+  <div class="row">
+      <button type="submit" class="btn btn-primary"> Afficher le maillage </button>
+  </div>
+  </br>
+  {% if res is defined %}
+    <div class="row">
+        <div class="col-6 text-center">
+            <img class="rounded" width="520" height="300" src="../static/images/schema_ferme.png">
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+
+
+        
+{% endblock %}

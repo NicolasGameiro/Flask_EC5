@@ -20,7 +20,7 @@ print(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+'\\src')
 print(sys.path)
 
-from gen_report import export_rapport
+from src.gen_report import rapport
 
 def cb(Load : int, nb_bolt : int) -> int :
     return Load/nb_bolt
@@ -40,16 +40,6 @@ categorie_charge_exploitation = { "A" : 1.5,
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "secret"
 
-#Create a form class
-class SoliveForm(FlaskForm):
-    name = StringField("Load applied to the bolt :", validators = [DataRequired()])
-    hauteur = IntegerField("Hauteur (cm) : ")
-    largeur = IntegerField("Largueur (cm) : ")
-    entraxe = DecimalField("Entraxe (cm) : ")
-    portee = DecimalField("Portée (m) : ")
-    P = DecimalField("Charge permanente (kN/m2) : ")
-    Q = DecimalField("Charge variable (kN/m2) : ")
-    submit = SubmitField("Calculer")
     
 class BoltForm(FlaskForm):
     nb_bolt = IntegerField("Nombre de vis : ")
@@ -95,15 +85,46 @@ def solive():
         sig = EC5.calcul_solive(h, l, bande, p, q_elu, q_els)
         res = EC5.calcul_taux_trav(sig[0], sig[1], sig[2], b, cs, cq)
         return render_template("solive.html", q = q_elu ,sig = sig,  res = res)
+        flash('calcul lancé !')
         #stc, sf, sc, fleche = calcul_solive(h, l, e, p, c_p, c_v)
         #sigma = [stc, sf, sc]
     return render_template("solive.html")
+
+@app.route('/panne')
+def panne():
+    return render_template("panne.html")
+
+@app.route('/node', methods=['GET','POST'])
+def node():
+    if request.method == "POST" and request.form['button'] == "add_node" : 
+            x = request.form.get("x")
+            y = request.form.get("y")
+            z = request.form.get("z")
+            NL = [[x, y, z]]
+            flash('Le noeud a été ajouté avec succès !')
+            return render_template("node.html", NL = NL)
+    elif request.method == "POST" and request.form['button'] == "del_node" : 
+            NL =  [[]] 
+            flash('Le noeud a été supprimé avec succès !')
+            return render_template("node.html", NL = NL)
+    elif request.method == "POST" and request.form['button'] == "add_elem" : 
+            n1 = request.form.get("n1")
+            n2 = request.form.get("n2")
+            EL = [[n1, n2]]
+            flash("L'element a été ajouté avec succès !")
+            return render_template("node.html", EL = EL)
+    elif request.method == "POST" and request.form['button'] == "del_elem" : 
+            EL =  [[]] 
+            flash("L'element a été supprimé avec succès !")
+            return render_template("node.html", EL = EL)
+    else : 
+        return render_template("node.html")
 
 @app.route('/Report', methods=['POST'])
 def report():
     if request.method == "POST" : 
         output = request.form.to_dict()
-        export_rapport(output)
+        rapport(output)
     return render_template("solive.html")
 
 

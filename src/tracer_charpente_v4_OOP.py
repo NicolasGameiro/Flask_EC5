@@ -105,22 +105,27 @@ class Ferme_Designer() :
         self.ax1.add_patch(Rectangle((self.offset_sablier, self.h_mur1+self.ep_dalle), self.b_sablier, self.h_sablier, color='m', fill=True,lw=0,label='sabliere'))
         self.ax1.add_patch(Rectangle((self.largeur_batiment - self.offset_sablier, self.h_mur2+self.ep_dalle), self.b_sablier, self.h_sablier, color='m', fill=True,lw=0))
 
-    def add_chevron(self, ep_chevron = 10) : 
+    def add_chevron(self, ep_chevron = 10, sym = True) : 
         ### Ajout des chevrons
         self.ep_chevron = ep_chevron #cm
         # gauche
-        x_chevron1 = [self.axe_ferme, self.axe_ferme, self.offset_sablier , self.offset_sablier , axe_ferme]
-        y_chevron1 = [h_archi+ep_dalle-ep_couv, h_archi+ep_dalle-ep_couv-ep_chevron, h_mur1+ep_dalle+h_sablier , h_mur1+ep_dalle+ep_chevron+h_sablier, h_archi+ep_dalle-ep_couv]
-        ax1.add_patch(Polygon(xy=list(zip(x_chevron1,y_chevron1)), fill=True, color='g',alpha = 0.5,lw=0,label='chevron'))
+        x_chevron1 = [self.axe_ferme, self.axe_ferme, self.offset_sablier , self.offset_sablier , self.axe_ferme]
+        y_chevron1 = [self.h_archi+self.ep_dalle-self.ep_couv, self.h_archi+self.ep_dalle-self.ep_couv-self.ep_chevron, self.h_mur1+self.ep_dalle+self.h_sablier , self.h_mur1+self.ep_dalle+self.ep_chevron+self.h_sablier, self.h_archi+self.ep_dalle-self.ep_couv]
+        self.ax1.add_patch(Polygon(xy=list(zip(x_chevron1,y_chevron1)), fill=True, color='g',alpha = 0.5,lw=0,label='chevron'))
         # droite
-        x_chevron2 = [axe_ferme, axe_ferme, largeur_batiment+debord_droite , largeur_batiment+debord_droite , axe_ferme]
-        y_chevron2 = [h_archi+ep_dalle-ep_couv, h_archi+ep_dalle-ep_couv-ep_chevron, h_mur2-ep_couv-ep_chevron, h_mur2-ep_couv, h_archi+ep_dalle-ep_couv]
+        if sym == False :
+            x_chevron2 = [axe_ferme, axe_ferme, largeur_batiment+debord_droite , largeur_batiment+debord_droite , axe_ferme]
+            y_chevron2 = [h_archi+ep_dalle-ep_couv, h_archi+ep_dalle-ep_couv-ep_chevron, h_mur2-ep_couv-ep_chevron, h_mur2-ep_couv, h_archi+ep_dalle-ep_couv]
+        else : 
+            x_chevron2 = x_chevron1
+            y_chevron2 = y_chevron1
         self.ax1.add_patch(Polygon(xy=list(zip(x_chevron2,y_chevron2)), fill=True, color='g',alpha = 0.5,lw=0))
 
 if __name__ == "__main__" :
     f = Ferme_Designer("sym")
-    f.add_maconnerie(20,200,20)
-    f.add_axe(400,700)
+    f.add_maconnerie(20,250,20)
+    f.add_axe(400,600)
     f.add_sabliere(10,16,16)
+    f.add_chevron(10)
     f.draw()
 

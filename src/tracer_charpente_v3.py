@@ -51,6 +51,10 @@ def filled_arc(center, radius, theta1, theta2, ax, color,label):
     ax.add_patch(pol)
     return
 
+#########################################
+##### PARAMETRAGE #######################
+#########################################
+
 #0. type de charpente1 : 
 # choix : symetrique / autoporteuse / panne_sur_pignon / tradi_avec_ferme
 type_charpente1 = "symetrique"
@@ -61,8 +65,8 @@ type_charpente1 = "symetrique"
 ep_dalle = 20 # cm
 
 #3. epaisseur du batiment
-largeur_batiment = 350 #cm portée exterieur mur
-axe_ferme = 350-10
+largeur_batiment = 700 #cm portée exterieur mur
+axe_ferme = 350
 
 #4. epaisseur de mur
 ep_mur1 = 20 # cm
@@ -70,7 +74,7 @@ ep_mur2 = 20 #cm
 
 #5. hauteur de mur
 h_mur1 = 210 # cm
-h_mur2 = 280 # cm
+h_mur2 = 210 # cm
 
 #definir une position a part sinon par defaut au niveau du mur le plus bas
 
@@ -80,6 +84,25 @@ ep_chevron = 10 #cm
 
 debord_gauche = 40 #cm
 debord_droite = 40 #cm
+
+# Dim sabliere
+offset_sablier = 10 #cm
+h_sablier = 16 #cm
+b_sablier = 16 #cm
+
+# Dim chevron
+ep_chevron = 10 #cm
+
+#Dim ferme
+ep_panne = 26 #cm
+b_panne = 10
+h_panne = 26
+ep_arba = 26 #cm
+h_entrait = 20 #cm
+b_poinçon = 20 #cm
+
+b_rive = 2.5 #cm
+r_gout = 6
 
 pente1 = np.arctan((h_archi-h_mur1)/(axe_ferme+debord_gauche)) #degre
 pente2 = np.arctan((h_archi-h_mur2)/(largeur_batiment-axe_ferme+debord_droite)) #degre
@@ -103,21 +126,31 @@ y_axe = [0, 1.3*h_archi]
 ax1.plot(x_axe,y_axe,linestyle='dashed',lw=0.4,label="axe ferme")
 
 ### Ajout de la sabliere
-offset_sablier = 10 #cm
-h_sablier = 16 #cm
-b_sablier = 16 #cm
 ax1.add_patch(Rectangle((offset_sablier, h_mur1+ep_dalle), b_sablier, h_sablier, color='m', fill=True,lw=0,label='sabliere'))
 ax1.add_patch(Rectangle((largeur_batiment - offset_sablier, h_mur2+ep_dalle), b_sablier, h_sablier, color='m', fill=True,lw=0))
 
 ### Ajout des chevrons
-ep_chevron = 10 #cm
 # gauche
 x_chevron1 = [axe_ferme, axe_ferme, offset_sablier , offset_sablier , axe_ferme]
 y_chevron1 = [h_archi+ep_dalle-ep_couv, h_archi+ep_dalle-ep_couv-ep_chevron, h_mur1+ep_dalle+h_sablier , h_mur1+ep_dalle+ep_chevron+h_sablier, h_archi+ep_dalle-ep_couv]
 ax1.add_patch(Polygon(xy=list(zip(x_chevron1,y_chevron1)), fill=True, color='g',alpha = 0.5,lw=0,label='chevron'))
+#07/05/2022
+x_debord = [offset_sablier, offset_sablier, -debord_gauche, -debord_gauche , offset_sablier]
+delta_y1 = np.tan(pente1)*debord_gauche
+y_debord1 = [h_mur1+ep_dalle+h_sablier+ep_chevron , 
+             h_mur1+ep_dalle+h_sablier , 
+             h_mur1+ep_dalle+h_sablier-delta_y1,
+             h_mur1+ep_dalle+h_sablier-delta_y1 + ep_chevron,
+             h_mur1+ep_dalle+h_sablier+ep_chevron]
+ax1.add_patch(Polygon(xy=list(zip(x_debord,y_debord1)), fill=True, color='g',alpha = 0.5,lw=0,label='chevron'))
 # droite
+delta_y2 = np.tan(pente2)*debord_droite
 x_chevron2 = [axe_ferme, axe_ferme, largeur_batiment+debord_droite , largeur_batiment+debord_droite , axe_ferme]
-y_chevron2 = [h_archi+ep_dalle-ep_couv, h_archi+ep_dalle-ep_couv-ep_chevron, h_mur2-ep_couv-ep_chevron, h_mur2-ep_couv, h_archi+ep_dalle-ep_couv]
+y_chevron2 = [h_archi + ep_dalle - ep_couv , 
+              h_archi + ep_dalle - ep_couv - ep_chevron ,
+              h_mur2 + ep_dalle + h_sablier - delta_y2 ,
+              h_mur2 + ep_dalle + h_sablier - delta_y2 + ep_chevron , 
+              h_archi + ep_dalle - ep_couv]
 ax1.add_patch(Polygon(xy=list(zip(x_chevron2,y_chevron2)), fill=True, color='g',alpha = 0.5,lw=0))
 
 ### Ajout de la couverture
@@ -125,17 +158,29 @@ ax1.add_patch(Polygon(xy=list(zip(x_chevron2,y_chevron2)), fill=True, color='g',
 x_couv1 = [axe_ferme, axe_ferme, offset_sablier , offset_sablier , axe_ferme]
 y_couv1 = [h_archi+ep_dalle, h_archi+ep_dalle-ep_couv, h_mur1+ep_dalle+h_sablier+ep_chevron , h_mur1+ep_dalle+h_sablier+ep_chevron+ep_couv , h_archi+ep_dalle]
 ax1.add_patch(Polygon(xy=list(zip(x_couv1,y_couv1)), fill=True, color='r',alpha = 0.5,lw=0,label='couverture'))
-ax1.text(0.1*axe_ferme ,h_archi*0.7, "pente1 = "+str(a1)+"°", fontsize=8,color='r',rotation=a1)
+ax1.text(0.25*axe_ferme ,h_archi*1.0 , "pente1 = "+str(a1)+"°",fontsize=8 ,color='r')
+
+x_debord = [offset_sablier, offset_sablier, -debord_gauche, -debord_gauche , offset_sablier]
+y_debord2 = [h_mur1 + ep_dalle + h_sablier + ep_chevron + ep_couv ,
+             h_mur1+ep_dalle+h_sablier+ep_chevron ,
+             h_mur1+ep_dalle+h_sablier-delta_y1 + ep_chevron ,
+             h_mur1+ep_dalle+h_sablier-delta_y1 + ep_chevron+ep_couv ,
+             h_mur1+ep_dalle+h_sablier+ep_chevron+ep_couv ]
+ax1.add_patch(Polygon(xy=list(zip(x_debord,y_debord2)), fill=True, color='r',alpha = 0.5,lw=0,label='couverture'))
+
 # droite
 x_couv2 = [axe_ferme, axe_ferme, largeur_batiment+debord_droite , largeur_batiment+debord_droite , axe_ferme]
-y_couv2 = [h_archi+ep_dalle, h_archi+ep_dalle-ep_couv, h_mur2-ep_couv, h_mur2, h_archi+ep_dalle]
+y_couv2 = [h_archi + ep_dalle ,
+           h_archi + ep_dalle - ep_couv ,
+           h_mur2 + ep_dalle + h_sablier - delta_y2 + ep_chevron,
+           h_mur2 + ep_dalle + h_sablier - delta_y2 + ep_chevron + ep_couv ,
+           h_archi + ep_dalle]
 ax1.add_patch(Polygon(xy=list(zip(x_couv2,y_couv2)), fill=True, color='r',alpha = 0.5,lw=0))
-ax1.text(0.9*largeur_batiment ,h_archi*0.7, "pente2 = "+str(a2)+"°", fontsize=8,color='r',rotation=-a2)
+ax1.text(0.75*largeur_batiment ,h_archi*1.0, "pente2 = "+str(a2)+"°", fontsize=8,color='r')
 
 
 ### Ajout de chambre de panne
 Type_panne = 'devers' #ou 'aplomb'
-ep_panne = 26 #cm
 if Type_panne == 'devers':
     x_panne1 = [axe_ferme, axe_ferme, ep_mur1 , ep_mur1, axe_ferme]
     y_panne1 = [h_archi+ep_dalle-ep_couv-ep_chevron,
@@ -143,14 +188,16 @@ if Type_panne == 'devers':
                 h_mur1+ep_dalle+ep_couv+ep_chevron-ep_panne, 
                 h_mur1+ep_dalle+ep_couv+ep_chevron, 
                 h_archi+ep_dalle-ep_couv-ep_chevron]
+    x_panne = ep_mur1 + np.cos(pente1)*140
+    y_panne = h_mur1 + ep_dalle + np.sin(pente1)*120
+    ax1.add_patch(Rectangle((x_panne , y_panne), b_panne, h_panne, color='gray', fill=True, lw=0,label="panne", angle=a1))
 elif Type_panne == 'aplomb' :
     x_panne = [largeur_batiment/2, largeur_batiment/2, 0 , 0 , largeur_batiment/2]
     y_panne = [h_archi+ep_dalle-ep_couv-ep_chevron, h_archi+ep_dalle-ep_couv-ep_chevron-ep_panne, h_mur1+ep_dalle+ep_couv+ep_chevron-ep_panne, h_mur1+ep_dalle+ep_couv+ep_chevron, h_archi+ep_dalle-ep_couv-ep_chevron]
     
-ax1.add_patch(Polygon(xy=list(zip(x_panne1,y_panne1)), fill=True, color='c',alpha = 0.5,lw=0,label='panne'))
+ax1.add_patch(Polygon(xy=list(zip(x_panne1,y_panne1)), fill=True, color='c',alpha = 0.1,lw=0,label='panne'))
 
 ### Ajout de chambre d'arba
-ep_arba = 26 #cm
 x_arba = [axe_ferme, axe_ferme, ep_mur1 , ep_mur1, axe_ferme]
 y_arba = [h_archi+ep_dalle-ep_couv-ep_chevron-ep_panne ,
           h_archi+ep_dalle-ep_couv-ep_chevron-ep_panne-ep_arba,
@@ -161,21 +208,18 @@ ax1.add_patch(Polygon(xy=list(zip(x_arba,y_arba)), fill=True, color='y',alpha = 
 
 ### Planche de rive
 h_rive = ep_couv+ep_chevron #cm
-b_rive = 5 #cm
-ax1.add_patch(Rectangle((-debord_gauche-b_rive,h_mur1-ep_couv-ep_chevron, 0), b_rive, h_rive, color='gray', fill=True, lw=0,label="rive"))
+ax1.add_patch(Rectangle((-debord_gauche-b_rive,h_mur1+ep_couv+ep_chevron, 0), b_rive, h_rive, color='gray', fill=True, lw=0,label="rive"))
 
 ### Goutiere
-r_gout = 10
-filled_arc((-debord_gauche-r_gout,h_mur1-ep_couv-ep_chevron), r_gout, 180, 360, ax1, "k","goutiere")
+filled_arc((-debord_gauche-r_gout,h_mur1+ep_couv+ep_chevron), r_gout, 180, 360, ax1, "k","goutiere")
 
-### Ferme
-b_poinçon = 20 #cm
-L_poinçon = h_archi-h_mur1 #cm
-ax1.add_patch(Rectangle((axe_ferme-b_poinçon/2, h_archi+ep_dalle-L_poinçon), b_poinçon, L_poinçon , color='b', alpha=0.5, fill=True, lw=0,label="poinçon"))
 # Entrait
 L_entrait = largeur_batiment-ep_mur1-ep_mur2
-h_entrait = 20 #cm
 ax1.add_patch(Rectangle((ep_mur1, min(h_mur1,h_mur2)), L_entrait, h_entrait , color='k', fill=False, lw=0.5,label="entrait"))
+### Ferme
+L_poinçon = h_archi-h_mur1-ep_couv+h_entrait #cm
+ax1.add_patch(Rectangle((axe_ferme-b_poinçon/2, h_mur1+ep_dalle-h_entrait), b_poinçon, L_poinçon , color='b', alpha=0.5, fill=True, lw=0,label="poinçon"))
+# Entrait
 
 """
 #jambe de force
@@ -213,7 +257,7 @@ def charge_horizontale(ax,x,y,L) :
 #charge_horizontale(ax1,ep_mur1,h_mur1+h_entrait,L_entrait)
 
 ax1.axis('equal')
-plt.grid(color = 'b', linestyle = '--', linewidth = 0.5)
+#plt.grid(color = 'b', linestyle = '--', linewidth = 0.5)
 ax1.legend(bbox_to_anchor=(1.05, 1),loc='upper left', borderaxespad=0.)
 #ax1.axis('off')
 
