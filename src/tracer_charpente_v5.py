@@ -57,6 +57,21 @@ def bois(ax , pt1 , pt2 , e , c,  loc) :
         y = [y1 , y2 , y2 + ey , y1 + ey , y1 ]
     ax.add_patch(Polygon(xy=list(zip(x,y)), fill=True, color=c,alpha = 0.5,lw=0))
     return print("angle = ", np.rad2deg(a) )
+
+
+def rotate(origin, point, angle):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+
+    qx = ox + np.cos(angle) * (px - ox) - np.sin(angle) * (py - oy)
+    qy = oy + np.sin(angle) * (px - ox) + np.cos(angle) * (py - oy)
+    return qx, qy
+
 #########################################
 ##### PARAMETRAGE #######################
 #########################################
@@ -72,19 +87,19 @@ ep_dalle = 20 # cm
 
 #3. epaisseur du batiment
 largeur_batiment = 800 #cm portée exterieur mur
-axe_ferme = 500
+axe_ferme = 400
 
 #4. epaisseur de mur
 ep_mur1 = 20 # cm
 ep_mur2 = 20 #cm
 
 #5. hauteur de mur
-h_mur1 = 210 # cm
-h_mur2 = 210 # cm
+h_mur1 = 300 # cm
+h_mur2 = 300 # cm
 
 #definir une position a part sinon par defaut au niveau du mur le plus bas
 
-h_archi = 480 #cm par rapport au haut de la dalle (et en bas de la dalle !)
+h_archi = 600 #cm par rapport au haut de la dalle (et en bas de la dalle !)
 ep_couv = 10 #cm
 ep_chevron = 10 #cm
 
@@ -127,35 +142,23 @@ def walls(ax , ep_dalle , largeur_batiment, ep_mur1, h_mur1 , typ , ep_mur2 = 20
         ax.add_patch(Rectangle((largeur_batiment-ep_mur2, ep_dalle), ep_mur2, h_mur2, fill=False,lw=0.3, hatch='\\\\'))
     return print("murs créés")
 
-def echantignolle(ax ,pt , h , r = 0) : 
+def echantignolle(ax ,pt , h , r = 0 , reverse = False) : 
     x2 , x3 = pt[0] - 1.5*h , pt[0]
     y2 , y3 = pt[1] , pt[1] + h
-    x2 = np.cos(r)*x2 - np.sin(r)*y2
-    x3 = np.cos(r)*x3 - np.sin(r)*y3
-    y2 = np.sin(r)*x2 + np.cos(r)*y2
-    y3 = np.sin(r)*x3 + np.cos(r)*y3
+    x2 , y2 = rotate((pt[0] , pt[1]) ,(x2 , y2), r)
+    x3 , y3 = rotate(pt , [x3 , y3], r)
     x_echan = [pt[0] , x2 , x3]
     y_echan = [pt[1] , y2 , y3]
+    if reverse == True : 
+        x2 , x3 = pt[0] , pt[0] +  h
+        y2 , y3 = pt[1] - 1.5*h , pt[1]
+        x2 , y2 = rotate((pt[0] , pt[1]) ,(x2 , y2), r)
+        x3 , y3 = rotate(pt , [x3 , y3], r)
+        x_echan = [pt[0] , x2 , x3]
+        y_echan = [pt[1] , y2 , y3]
     ax1.add_patch(Polygon(xy=list(zip(x_echan,y_echan)), fill=True, color='k',lw=0,label = "echantignolle"))
     return print("echantignolle ajoutée ! ")
 
-"""
-#jambe de force
-h_jdf = 0.5*L_poinçon + h_mur1 + ep_dalle
-b_jdf = 20 #cm
-a_jdf = np.deg2rad(45)
-x_jdf = [axe_ferme-b_poinçon/2 ,
-         axe_ferme-b_poinçon/2 ,
-         axe_ferme-b_poinçon/2 - np.tan(a_jdf)*100 ,
-         axe_ferme-b_poinçon/2 - np.tan(a_jdf)*(100+b_jdf) , 
-         axe_ferme-b_poinçon/2]
-y_jdf = [h_jdf, 
-         h_jdf-b_jdf ,
-         h_jdf+10 , 
-         h_jdf+10+b_jdf ,
-         h_jdf]
-ax1.add_patch(Polygon(xy=list(zip(x_jdf,y_jdf)), fill=True, color='m',alpha = 1,lw=0,label='jdf'))
-"""
 
 def charge(ax,pt1,pt2, q) :
     x1, x2 = pt1[0], pt2[0]
@@ -182,74 +185,48 @@ def charge(ax,pt1,pt2, q) :
 #poutre(ax1, pt1 = [0,0], pt2 = [100,200], e = 20, c = 'r' , angle = pente1 )
 #bois(ax1, pt1 = [0,0], pt2 = [100,200], e = 20, c = 'r' , loc ="sup")
 
-
-if __name__ == "__main__" : 
-    # plot
-    plt.figure(figsize=(11.69,8.27)) # for landscape
-    fig, ax1 = plt.subplots()
-    
-    #construction
-    walls(ax1 , ep_dalle , largeur_batiment, ep_mur1, h_mur1 , "sym" )
-    
+def charpente(ax1 ,axe_ferme , h_archi , offset_sablier , b_sablier , h_sablier , 
+              debord_gauche , debord_droite , ep_couv , ep_chevron , 
+              ep_panne, b_panne, h_panne , 
+              ep_arba , 
+              h_entrait , 
+              b_poinçon ) :  
     ### Axe ferme
     x_axe = [axe_ferme, axe_ferme]
     y_axe = [0, 1.3*h_archi]
     ax1.plot(x_axe,y_axe,linestyle='dashed',lw=0.4,label="axe ferme")
-
+    
     ### Ajout de la sabliere
     ax1.add_patch(Rectangle((offset_sablier, h_mur1+ep_dalle), b_sablier, h_sablier, color='m', fill=True,lw=0,label='sabliere'))
     ax1.add_patch(Rectangle((largeur_batiment - offset_sablier - b_sablier , h_mur2+ep_dalle), b_sablier, h_sablier, color='m', fill=True,lw=0))
-
+    
     ### Ajout des chevrons
     #gauche
-    delta_y1 = np.tan(pente1)*debord_gauche
+    delta_y1 = np.tan(pente1)*(debord_gauche + offset_sablier)
     pt1_chev1 = [-debord_gauche , h_mur1+ep_dalle+h_sablier-delta_y1 ]
-    pt2_chev1 = [axe_ferme , h_archi + ep_dalle - ep_couv - ep_chevron]
+    pt2_chev1 = [axe_ferme , h_archi + ep_dalle - ep_couv/np.cos(pente1) - ep_chevron/np.cos(pente1)]
     bois(ax1, pt1_chev1, pt2_chev1, e = ep_chevron , c = "g", loc = "inf")
-
     # droite
-    delta_y2 = np.tan(pente2)*debord_droite
-    pt1_chev2 = [axe_ferme , h_archi + ep_dalle - ep_couv -ep_chevron]
+    delta_y2 = np.tan(pente2)*(debord_droite + offset_sablier)
+    pt1_chev2 = [axe_ferme , h_archi + ep_dalle - ep_couv/np.cos(pente1) -ep_chevron/np.cos(pente1)]
     pt2_chev2 = [largeur_batiment+debord_droite , h_mur2 + ep_dalle + h_sablier - delta_y2]
     bois(ax1, pt1_chev2, pt2_chev2, e = ep_chevron , c = "g", loc = "inf")
-
-
+    
     ### Ajout de la couverture
     #gauche
-    pt1_couv1 = [pt1_chev1[0] , pt1_chev1[1] + ep_chevron ]
-    pt2_couv1 = [pt2_chev1[0] , pt2_chev1[1] + ep_chevron ]
+    pt1_couv1 = [pt1_chev1[0] , pt1_chev1[1] + ep_chevron/np.cos(pente1) ]
+    pt2_couv1 = [pt2_chev1[0] , pt2_chev1[1] + ep_chevron/np.cos(pente1) ]
     bois(ax1, pt1_couv1, pt2_couv1, e = ep_couv , c = "r", loc = "inf")
-    
-    charge(ax1,pt1_couv1, pt2_couv1, 10)
+    ax1.text(0.25*axe_ferme ,h_archi*1.0 , "pente1 = "+str(a1)+"°",fontsize=8 ,color='r')
 
     # droite
-    pt1_couv2 = [pt1_chev2[0] , pt1_chev2[1] + ep_chevron ]
-    pt2_couv2 = [pt2_chev2[0] , pt2_chev2[1] + ep_chevron ]
+    pt1_couv2 = [pt1_chev2[0] , pt1_chev2[1] + ep_chevron/np.cos(pente1) ]
+    pt2_couv2 = [pt2_chev2[0] , pt2_chev2[1] + ep_chevron/np.cos(pente1) ]
     bois(ax1, pt1_couv2, pt2_couv2, e = ep_couv , c = "r", loc = "inf")
-    
-    charge(ax1,pt1_couv2, pt2_couv2, 10)
+    ax1.text(0.75*largeur_batiment ,h_archi*1.0, "pente2 = "+str(a2)+"°", fontsize=8,color='r')
 
+    
     ### Ajout de chambre de panne
-    Type_panne = 'devers' #ou 'aplomb'
-    if Type_panne == 'devers':
-        x_panne1 = [axe_ferme, axe_ferme, ep_mur1 , ep_mur1, axe_ferme]
-        y_panne1 = [h_archi+ep_dalle-ep_couv-ep_chevron,
-                    h_archi+ep_dalle-ep_couv-ep_chevron-ep_panne, 
-                    h_archi - (axe_ferme - ep_mur1)*np.tan(pente1) - ep_panne, 
-                    h_archi - (axe_ferme - ep_mur1)*np.tan(pente1) , 
-                    h_archi+ep_dalle-ep_couv-ep_chevron]
-        L = np.sqrt((axe_ferme - ep_mur1)**2 + (h_archi - ep_couv - ep_chevron - h_mur1)**2)
-        print(L,L//180)
-        for i in range(int(L // 180)) :      
-            x_panne = ep_mur1 + np.cos(pente1)*L/(L // 180 + 1)*(i+1)
-            y_panne = h_mur1 + np.sin(pente1)*L/(L // 180 + 1)*(i+1)
-            ax1.add_patch(Rectangle((x_panne , y_panne), b_panne, h_panne, color='gray', fill=True, lw=0,label="panne", angle=0))
-            pt1 = [x_panne,y_panne]
-            echantignolle(ax1 , pt1 , h_panne )
-    elif Type_panne == 'aplomb' :
-        x_panne = [largeur_batiment/2, largeur_batiment/2, 0 , 0 , largeur_batiment/2]
-        y_panne = [h_archi+ep_dalle-ep_couv-ep_chevron, h_archi+ep_dalle-ep_couv-ep_chevron-ep_panne, h_mur1+ep_dalle+ep_couv+ep_chevron-ep_panne, h_mur1+ep_dalle+ep_couv+ep_chevron, h_archi+ep_dalle-ep_couv-ep_chevron]
-        
     #gauche
     dy = np.tan(pente1)*b_sablier
     pt1_panne1 = [offset_sablier + b_sablier , h_mur1 + ep_dalle + h_sablier + dy]
@@ -262,43 +239,110 @@ if __name__ == "__main__" :
     pt2_panne2 = [ largeur_batiment - offset_sablier - b_sablier , h_mur2 + ep_dalle + h_sablier + dy]
     bois(ax1, pt1_panne2, pt2_panne2, e = ep_panne , c = "gray", loc = "sup")
     
+    ey = ep_panne/np.cos(pente1)
+    Type_panne = 'devers' #ou 'aplomb'
+    if Type_panne == 'devers':
+        #gauche
+        L = np.sqrt((pt2_panne1[0] - pt1_panne1[0])**2 + (pt2_panne1[1] - pt1_panne1[1])**2)
+        print(L,L//180)
+        for i in range(int(L // 180)) :      
+            x_panne = pt1_panne1[0] + np.cos(pente1)*L/(L // 180 + 1)*(i+1)
+            y_panne = pt1_panne1[1] - ey + np.sin(pente1)*L/(L // 180 + 1)*(i+1)
+            ax1.add_patch(Rectangle((x_panne , y_panne), b_panne, h_panne, color='gray', fill=True, lw=0, angle= a1))
+            pt1 = [x_panne,y_panne]
+            echantignolle(ax1 , pt1 , h_panne , pente1 )
+        #droite
+        L = np.sqrt((pt2_panne2[0] - pt1_panne2[0])**2 + (pt2_panne2[1] - pt1_panne2[1])**2)
+        print(L,L//180)
+        for i in range(int(L // 180)) :      
+            x_panne = pt2_panne2[0] - np.cos(pente2)*L/(L // 180 + 1)*(i+1)
+            y_panne = pt2_panne2[1] - ey + np.sin(pente2)*L/(L // 180 + 1)*(i+1)
+            ax1.add_patch(Rectangle((x_panne , y_panne), -b_panne, h_panne, color='gray', fill=True, lw=0 , angle= -a2))
+            pt1 = [x_panne,y_panne]
+            echantignolle(ax1 , pt1 , h_panne, np.pi/2-pente2 , True )
+    elif Type_panne == 'aplomb' :
+        x_panne = [largeur_batiment/2, largeur_batiment/2, 0 , 0 , largeur_batiment/2]
+        y_panne = [h_archi+ep_dalle-ep_couv-ep_chevron, h_archi+ep_dalle-ep_couv-ep_chevron-ep_panne, h_mur1+ep_dalle+ep_couv+ep_chevron-ep_panne, h_mur1+ep_dalle+ep_couv+ep_chevron, h_archi+ep_dalle-ep_couv-ep_chevron]
+        
+
+    
     #### attention ####
     # les ep indiquées ne sont pas les bonnes !
     ###################
-    
 
     ### Ajout de chambre d'arba
     #gauche
-    pt1_arba1 = [pt1_panne1[0] , pt1_panne1[1] - ep_panne - ep_arba ]
-    pt2_arba1 = [pt2_panne1[0] , pt2_panne1[1] - ep_panne - ep_arba ]
+    pt1_arba1 = [pt1_panne1[0] , pt1_panne1[1] - ep_panne/np.cos(pente1) - ep_arba/np.cos(pente1) ]
+    pt2_arba1 = [pt2_panne1[0] , pt2_panne1[1] - ep_panne/np.cos(pente1) - ep_arba/np.cos(pente1) ]
     bois(ax1, pt1_arba1, pt2_arba1, e = ep_arba , c = "y", loc = "inf")
 
     # droite
-    pt1_arba2 = [pt1_panne2[0] , pt1_panne2[1] - ep_panne - ep_arba ]
-    pt2_arba2 = [pt2_panne2[0] , pt2_panne2[1] - ep_panne - ep_arba ]
+    pt1_arba2 = [pt1_panne2[0] , pt1_panne2[1] - ep_panne/np.cos(pente1) - ep_arba/np.cos(pente1) ]
+    pt2_arba2 = [pt2_panne2[0] , pt2_panne2[1] - ep_panne/np.cos(pente1) - ep_arba/np.cos(pente1) ]
     bois(ax1, pt1_arba2, pt2_arba2, e = ep_arba , c = "y", loc = "inf")
-
-    ### Planche de rive
-    h_rive = ep_couv+ep_chevron #cm
-    ax1.add_patch(Rectangle((-debord_gauche-b_rive,h_mur1+ep_couv+ep_chevron, 0), b_rive, h_rive, color='gray', fill=True, lw=0,label="rive"))
-
-    ### Goutiere
-    filled_arc((-debord_gauche-r_gout,h_mur1+ep_couv+ep_chevron), r_gout, 180, 360, ax1, "k","goutiere")
-
+    
     # Entrait
     L_entrait = largeur_batiment-ep_mur1-ep_mur2
     ax1.add_patch(Rectangle((ep_mur1, min(h_mur1,h_mur2)), L_entrait, h_entrait , color='k', fill=False, lw=0.5,label="entrait"))
     ### Ferme
     L_poinçon = h_archi-h_mur1-ep_couv+h_entrait #cm
     ax1.add_patch(Rectangle((axe_ferme-b_poinçon/2, h_mur1+ep_dalle-h_entrait), b_poinçon, L_poinçon , color='b', alpha=0.5, fill=True, lw=0,label="poinçon"))
-    # Entrait
-    #charge(ax1,[ep_mur1,h_mur1+h_entrait], [ep_mur1 + L_entrait,h_mur1+h_entrait])
+    
+    """
+    #jambe de force
+    h_jdf = 0.5*L_poinçon + h_mur1 + ep_dalle
+    b_jdf = 20 #cm
+    a_jdf = np.deg2rad(45)
+    x_jdf = [axe_ferme-b_poinçon/2 ,
+             axe_ferme-b_poinçon/2 ,
+             axe_ferme-b_poinçon/2 - np.tan(a_jdf)*100 ,
+             axe_ferme-b_poinçon/2 - np.tan(a_jdf)*(100+b_jdf) , 
+             axe_ferme-b_poinçon/2]
+    y_jdf = [h_jdf, 
+             h_jdf-b_jdf ,
+             h_jdf+10 , 
+             h_jdf+10+b_jdf ,
+             h_jdf]
+    ax1.add_patch(Polygon(xy=list(zip(x_jdf,y_jdf)), fill=True, color='m',alpha = 1,lw=0,label='jdf'))
+    """
+    
+    return print("charpente créée")
 
+def couverture() :
+    ### Planche de rive
+    h_rive = ep_couv + ep_chevron + 2 #cm
+    delta_y1 = np.tan(pente1)*(debord_gauche + offset_sablier)
+    ax1.add_patch(Rectangle((-debord_gauche -b_rive,h_mur1 + ep_dalle +h_sablier-delta_y1 - 2, 0), b_rive, h_rive, color='gray', fill=True, lw=0,label="rive"))
+
+    ### Goutiere
+    filled_arc((-debord_gauche-r_gout - b_rive ,h_mur1 + ep_dalle +h_sablier-delta_y1), r_gout, 180, 360, ax1, "k","goutiere")
+    return print("couverture crée")
+
+
+if __name__ == "__main__" : 
+    # plot
+    plt.figure(figsize=(11.69,8.27)) # for landscape
+    fig, ax1 = plt.subplots()
+    
+    #construction
+    walls(ax1 , ep_dalle , largeur_batiment, ep_mur1, h_mur1 , "sym" )
+    
+    charpente(ax1 ,axe_ferme , h_archi , offset_sablier , b_sablier , h_sablier , 
+                  debord_gauche , debord_droite , ep_couv , ep_chevron , 
+                  ep_panne, b_panne, h_panne , 
+                  ep_arba , 
+                  h_entrait , 
+                  b_poinçon )
+    
+    couverture()
+
+    #charge(ax1,pt1_couv1, pt2_couv1, 10)
+    #charge(ax1,pt1_couv2, pt2_couv2, 10)
+    #charge(ax1,[ep_mur1,h_mur1+h_entrait], [ep_mur1 + L_entrait,h_mur1+h_entrait])
 
     ax1.axis('equal')
     #plt.grid(color = 'b', linestyle = '--', linewidth = 0.5)
     ax1.legend(bbox_to_anchor=(1.05, 1),loc='upper left', borderaxespad=0.)
     #ax1.axis('off')
     
-    plt.show()
     fig.savefig('schema_ferme.png', format='png', dpi=200)
