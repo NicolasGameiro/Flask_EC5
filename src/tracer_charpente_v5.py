@@ -43,7 +43,11 @@ def poutre(ax, pt1, pt2, e, c,  angle = 0) :
     ax.add_patch(Polygon(xy=list(zip(x,y)), fill=True, color=c,alpha = 0.5,lw=0))
     return 
 
-def bois(ax , pt1 , pt2 , e , c,  loc) : 
+def bois(ax , pt1 , pt2 , e : float , c : str ,  loc : str) : 
+    """
+    Fonction pour tracer la coupe d'un bois à partir des coordonnées de ses points
+    inférieurs ou supérieurs.
+    """
     x1, x2 = pt1[0], pt2[0]
     y1, y2 = pt1[1], pt2[1]
     dx, dy = x2 - x1, y2 - y1
@@ -56,7 +60,7 @@ def bois(ax , pt1 , pt2 , e , c,  loc) :
     elif loc == "inf" : 
         y = [y1 , y2 , y2 + ey , y1 + ey , y1 ]
     ax.add_patch(Polygon(xy=list(zip(x,y)), fill=True, color=c,alpha = 0.5,lw=0))
-    return print("angle = ", np.rad2deg(a) )
+    return #print("angle = ", np.rad2deg(a) )
 
 
 def rotate(origin, point, angle):
@@ -125,12 +129,12 @@ b_poinçon = 20 #cm
 b_rive = 2.5 #cm
 r_gout = 6
 
-pente1 = np.arctan((h_archi-h_mur1)/(axe_ferme+debord_gauche)) #degre
-pente2 = np.arctan((h_archi-h_mur2)/(largeur_batiment-axe_ferme+debord_droite)) #degre
-a1 = np.round(np.rad2deg(pente1),2)
-a2 = np.round(np.rad2deg(pente2),2)
-print("pente à gauche : ", a1," deg")
-print("pente à droite : ", a2," deg")
+pente1 = np.arctan((h_archi-h_mur1-h_sablier-ep_chevron-ep_couv)/(axe_ferme-offset_sablier)) #degre
+pente2 = np.arctan((h_archi-h_mur2-h_sablier-ep_chevron-ep_couv)/(largeur_batiment-axe_ferme-offset_sablier)) #degre
+a1 = np.rad2deg(pente1)
+a2 = np.rad2deg(pente2)
+print("pente à gauche : ", np.round(a1,2)," deg")
+print("pente à droite : ", np.round(a2,2)," deg")
 
 ### Ajout de la maçonnerie
 def walls(ax , ep_dalle , largeur_batiment, ep_mur1, h_mur1 , typ , ep_mur2 = 20 , h_mur2 =300 ) :
@@ -194,7 +198,7 @@ def charpente(ax1 ,axe_ferme , h_archi , offset_sablier , b_sablier , h_sablier 
     ### Axe ferme
     x_axe = [axe_ferme, axe_ferme]
     y_axe = [0, 1.3*h_archi]
-    ax1.plot(x_axe,y_axe,linestyle='dashed',lw=0.4,label="axe ferme")
+    #ax1.plot(x_axe,y_axe,linestyle='dashed',lw=0.4,label="axe ferme")
     
     ### Ajout de la sabliere
     ax1.add_patch(Rectangle((offset_sablier, h_mur1+ep_dalle), b_sablier, h_sablier, color='m', fill=True,lw=0,label='sabliere'))
@@ -217,13 +221,13 @@ def charpente(ax1 ,axe_ferme , h_archi , offset_sablier , b_sablier , h_sablier 
     pt1_couv1 = [pt1_chev1[0] , pt1_chev1[1] + ep_chevron/np.cos(pente1) ]
     pt2_couv1 = [pt2_chev1[0] , pt2_chev1[1] + ep_chevron/np.cos(pente1) ]
     bois(ax1, pt1_couv1, pt2_couv1, e = ep_couv , c = "r", loc = "inf")
-    ax1.text(0.25*axe_ferme ,h_archi*1.0 , "pente1 = "+str(a1)+"°",fontsize=8 ,color='r')
+    ax1.text(0.25*axe_ferme ,h_archi*1.0 , "pente1 = "+str(np.round(a1,2))+"°",fontsize=8 ,color='r')
 
     # droite
     pt1_couv2 = [pt1_chev2[0] , pt1_chev2[1] + ep_chevron/np.cos(pente1) ]
     pt2_couv2 = [pt2_chev2[0] , pt2_chev2[1] + ep_chevron/np.cos(pente1) ]
     bois(ax1, pt1_couv2, pt2_couv2, e = ep_couv , c = "r", loc = "inf")
-    ax1.text(0.75*largeur_batiment ,h_archi*1.0, "pente2 = "+str(a2)+"°", fontsize=8,color='r')
+    ax1.text(0.75*largeur_batiment ,h_archi*1.0, "pente2 = "+str(np.round(a2,2))+"°", fontsize=8,color='r')
 
     
     ### Ajout de chambre de panne
@@ -286,7 +290,7 @@ def charpente(ax1 ,axe_ferme , h_archi , offset_sablier , b_sablier , h_sablier 
     ax1.add_patch(Rectangle((ep_mur1, min(h_mur1,h_mur2)), L_entrait, h_entrait , color='k', fill=False, lw=0.5,label="entrait"))
     ### Ferme
     L_poinçon = h_archi-h_mur1-ep_couv+h_entrait #cm
-    ax1.add_patch(Rectangle((axe_ferme-b_poinçon/2, h_mur1+ep_dalle-h_entrait), b_poinçon, L_poinçon , color='b', alpha=0.5, fill=True, lw=0,label="poinçon"))
+    #ax1.add_patch(Rectangle((axe_ferme-b_poinçon/2, h_mur1+ep_dalle-h_entrait), b_poinçon, L_poinçon , color='b', alpha=0.5, fill=True, lw=0,label="poinçon"))
     
     """
     #jambe de force
@@ -345,4 +349,4 @@ if __name__ == "__main__" :
     ax1.legend(bbox_to_anchor=(1.05, 1),loc='upper left', borderaxespad=0.)
     #ax1.axis('off')
     
-    fig.savefig('schema_ferme.png', format='png', dpi=200)
+    fig.savefig('schema_ferme.png', format='png', dpi=400)

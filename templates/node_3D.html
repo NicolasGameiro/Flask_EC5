@@ -24,6 +24,8 @@
                 <input type="number" class="form-control" id="hauteur" name="x" value="0">
                 <label for="hauteur" class="form-label"> Y (cm) </label>
                 <input type="number" class="form-control" id="hauteur" name="y" value="0">                
+                <label for="hauteur" class="form-label"> Z (cm) </label>
+                <input type="number" class="form-control" id="hauteur" name="z" value="0">
                 </br>
                 <button type="submit" class="btn btn-primary" name="button" value="add_node"> Ajouter </button>
                 <button type="submit" class="btn btn-secondary" name="button" value="del_node"> Reset </button>
@@ -43,6 +45,7 @@
               <th scope="col">#</th>
               <th scope="col"> X </th>
               <th scope="col"> Y </th>
+              <th scope="col"> Z </th>
             </tr>
           </thead>
         
@@ -54,6 +57,7 @@
                 <th scope="row">{{ i + 1 }}</th>
                 <td>{{ NL[i][0] }}</td>
                 <td>{{ NL[i][1] }}</td>
+                <td>{{ NL[i][2] }}</td>
             </tr>  
           {% endfor %}
           </tbody>
@@ -114,30 +118,16 @@
     </div>
   </div>
   </br>
-  <form method='POST'>
   <div class="row">
-      <button type="submit" class="btn btn-primary" name="button" value="geom"> Afficher le maillage </button>
+      <button type="submit" class="btn btn-primary"> Afficher le maillage </button>
   </div>
-  </form>
-    {% if im is defined %}
-    
-        <div class="row">
-            <div class="col-4 mx-auto text-center">
-                <img class="rounded" width="520" height="400" src="../static/images/geom.png">
-            </div>
-        </div>
-    
-    {% endif %}
-
-  
   </br>
   {% if res is defined %}
     <div class="row">
-        <div class="col-4 mx-auto text-center">
-                <img class="rounded" width="520" height="300" src="../static/images/schema_ferme.png">
+        <div class="col-6 text-center">
+            <img class="rounded" width="520" height="300" src="../static/images/schema_ferme.png">
         </div>
     </div>
-
     {% endif %}
 </div>
 

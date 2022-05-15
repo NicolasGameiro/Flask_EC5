@@ -5,6 +5,11 @@ Spyder Editor
 This is a temporary script file.
 """
 
+
+import base64
+from io import BytesIO
+from matplotlib.figure import Figure
+
 from flask import Flask, render_template, send_file, flash, request, url_for
 from flask_wtf import FlaskForm
 from wtforms import StringField,SubmitField,DecimalField,RadioField,SelectField,IntegerField
@@ -15,6 +20,7 @@ import json
 import pandas as pd
 import numpy as np
 import EC5
+import src.Code_FEM_v4 as fem
 import sys, os
 print(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+'\\src')
@@ -24,6 +30,8 @@ from src.gen_report import rapport
 
 def cb(Load : int, nb_bolt : int) -> int :
     return Load/nb_bolt
+
+mesh = fem.Mesh(2,[[0,0],[1,0]], [[1,2]])
 
 #taux de travail
 classe_de_service = {"classe 1" : 0.8 , 
@@ -39,6 +47,7 @@ categorie_charge_exploitation = { "A" : 1.5,
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "secret"
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
     
 class BoltForm(FlaskForm):
@@ -96,29 +105,37 @@ def panne():
 
 @app.route('/node', methods=['GET','POST'])
 def node():
+    #render_template("node.html", NL = mesh.node_list)
     if request.method == "POST" and request.form['button'] == "add_node" : 
-            x = request.form.get("x")
-            y = request.form.get("y")
-            z = request.form.get("z")
-            NL = [[x, y, z]]
-            flash('Le noeud a été ajouté avec succès !')
-            return render_template("node.html", NL = NL)
+        x = int(request.form.get("x"))
+        y = int(request.form.get("y"))
+        mesh.add_node([x, y])
+        flash('Le noeud a été ajouté avec succès !')
+        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
     elif request.method == "POST" and request.form['button'] == "del_node" : 
-            NL =  [[]] 
-            flash('Le noeud a été supprimé avec succès !')
-            return render_template("node.html", NL = NL)
+        x = int(request.form.get("x"))
+        y = int(request.form.get("y"))
+        mesh.del_node([x, y])
+        flash('Le noeud a été supprimé avec succès !')
+        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
     elif request.method == "POST" and request.form['button'] == "add_elem" : 
-            n1 = request.form.get("n1")
-            n2 = request.form.get("n2")
-            EL = [[n1, n2]]
-            flash("L'element a été ajouté avec succès !")
-            return render_template("node.html", EL = EL)
+        n1 = int(request.form.get("n1"))
+        n2 = int(request.form.get("n2"))
+        mesh.add_element([n1, n2])
+        flash("L'element a été ajouté avec succès !")
+        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
     elif request.method == "POST" and request.form['button'] == "del_elem" : 
-            EL =  [[]] 
-            flash("L'element a été supprimé avec succès !")
-            return render_template("node.html", EL = EL)
+        n1 = int(request.form.get("n1"))
+        n2 = int(request.form.get("n2"))
+        mesh.del_element([n1, n2])
+        flash("L'element a été supprimé avec succès !")
+        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
+    elif request.method == "POST" and request.form['button'] == "geom" : 
+        flash("node list = "+str(mesh.node_list) + "et element list = " + str(mesh.element_list))
+        mesh.geom(pic = True)
+        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list, im = 'geom.png')
     else : 
-        return render_template("node.html")
+        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
 
 @app.route('/Report', methods=['POST'])
 def report():
@@ -126,6 +143,19 @@ def report():
         output = request.form.to_dict()
         rapport(output)
     return render_template("solive.html")
+
+@app.route('/hello', methods=['GET','POST'])
+def hello():
+    # Generate the figure **without using pyplot**.
+    fig = Figure()
+    ax = fig.subplots()
+    ax.plot([1, 2])
+    # Save it to a temporary buffer.
+    buf = BytesIO()
+    fig.savefig(buf, format="png")
+    # Embed the result in the html output.
+    data = base64.b64encode(buf.getbuffer()).decode("ascii")
+    return f"<img src='data:image/png;base64,{data}'/>"
 
 
 if __name__ == "__main__":
