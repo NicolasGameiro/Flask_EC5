@@ -134,6 +134,26 @@ def node():
         flash("node list = "+str(mesh.node_list) + "et element list = " + str(mesh.element_list))
         mesh.geom(pic = True)
         return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list, im = 'geom.png')
+    elif request.method == "POST" and request.form['button'] == "run" : 
+        flash("node list = "+str(mesh.node_list) + "et element list = " + str(mesh.element_list))
+        mesh.geom(pic = True)
+        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list, im = 'geom.png')
+    elif request.method == "POST" and request.form['button'] == "add_cl" : 
+        n = int(request.form.get("node"))
+        ux = request.form.get("ux")
+        uy = request.form.get("uy")
+        rz = request.form.get("rz")
+        if ux is None : 
+            ux = 0
+        if uy is None : 
+            uy = 0
+        if rz is None : 
+            rz = 0
+        f = fem.FEM_Model(mesh)
+        f.apply_load([0,-1000,0],4)
+        f.apply_bc([int(ux),int(uy),int(rz)],n)
+        flash("node " + str(n) + " has the following bc : " + str(ux) + ", " + str(uy) + ", " + str(rz)) 
+        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
     else : 
         return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
 

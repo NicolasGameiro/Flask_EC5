@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+
+{% block content %}
+   
+{% for message in get_flashed_messages() %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+{% endfor %}
+
+<div class="container">
+    <div class="row row-cols-1 row-cols-md-2 mb-2">
+        <div class="col">
+        <div class="card mb-4 rounded-3 shadow-sm">
+          <div class="card-header py-3">
+            <h4 class="my-0 fw-normal"> <i class="bi bi-bounding-box-circles"></i> Gestion de la géométrie : </h4>
+          </div>
+          <div class="card-body text-center">
+                <form method='POST'>
+                    <div class="form-group row mb-3 ">
+                        <div class="col-3"> <label for="hauteur" class="form-label"> X (cm) </label> </div>
+                        <div class="col-3"> <input type="number" class="form-control" id="hauteur" name="x" value="0"> </div>
+                        <div class="col-3"> <label for="hauteur" class="form-label"> Y (cm) </label> </div>
+                        <div class="col-3"> <input type="number" class="form-control" id="hauteur" name="y" value="0"> </div>
+                    </div>  
+                <div class="col">
+                    <h4> Tableau de coordonnées des noeuds du maillage : </h3>
+                    
+                    <table class="table table-dark">
+                      <thead>
+                        <tr>
+                          <th scope="col">#</th>
+                          <th scope="col"> X </th>
+                          <th scope="col"> Y </th>
+                        </tr>
+                      </thead>
+                    
+                    {% if NL != [] %}
+                      <tbody>
+                      
+                      {% for i in range(NL|length) %}
+                        <tr>
+                            <th scope="row">{{ i + 1 }}</th>
+                            <td>{{ NL[i][0] }}</td>
+                            <td>{{ NL[i][1] }}</td>
+                        </tr>  
+                      {% endfor %}
+                      </tbody>
+                    {% endif %}
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-primary" name="button" value="add_node"> Ajouter </button>
+                <button type="submit" class="btn btn-secondary" name="button" value="del_node"> Reset </button>
+                <button type="submit" class="btn btn-danger" name="button" value="del_all_node"> Reset all </button>
+                </form>
+          </div>
+        </div>
+        </div>
+        <div class="col">
+            <div class="card mb-4 rounded-3 shadow-sm">
+              <div class="card-header py-3">
+                <h4 class="my-0 fw-normal"> <i class="bi bi-bounding-box-circles"></i> Gestion des éléments : </h4>
+              </div>
+              <div class="card-body text-center">
+                    <form method='POST'>
+                        <div class="form-group row mb-3 ">
+                            <div class="col-3"> <label for="hauteur" class="form-label"> node i </label> </div>
+                            <div class="col-3"> <input type="number" class="form-control" id="hauteur" name="n1" value="0"> </div>
+                            <div class="col-3"> <label for="hauteur" class="form-label"> node j </label> </div>
+                            <div class="col-3"> <input type="number" class="form-control" id="hauteur" name="n2" value="0"> </div>
+                        </div>  
+                    <div class="col">
+                    
+                        <h4> Tableau de coordonnées des elements du maillage : </h4>
+                        
+                        <table class="table">
+                          <thead>
+                            <tr>
+                              <th scope="col">#</th>
+                              <th scope="col">node 1</th>
+                              <th scope="col">node 2</th>
+                            </tr>
+                          </thead>
+                        
+                        {% if EL != [] %}
+                          <tbody>
+                          
+                          {% for i in range(EL|length) %}
+                            <tr>
+                                <th scope="row">{{ i + 1 }}</th>
+                                <td>{{ EL[i][0] }}</td>
+                                <td>{{ EL[i][1] }}</td>
+                            </tr>  
+                          {% endfor %}
+                          </tbody>
+                        {% endif %}
+                        </table>
+                
+                    </div>
+                    <button type="submit" class="btn btn-primary" name="button" value="add_elem"> Ajouter </button>
+                    <button type="submit" class="btn btn-secondary" name="button" value="del_elem"> Reset </button>
+                    <button type="submit" class="btn btn-danger" name="button" value="del_all_elem"> Reset all </button>
+                    </form>
+              </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="container">
+  <form method='POST'>
+  
+        <button type="submit" class="btn btn-primary" name="button" value="geom"> Afficher le maillage </button>
+  
+  </form>
+    {% if im is defined %}
+    
+        <div class="row">
+            <div class="col-4 mx-auto text-center">
+                <img class="rounded" width="520" height="400" src="../static/images/geom.png">
+            </div>
+        </div>
+    
+    {% endif %}
+    
+    <hr class="col-6 col-md-6 mb-5" >
+    
+    <div class="container shadow p-3 mb-5 bg-body rounded">
+
+        <h2> Ajout des chargements : </h1>
+        <hr class="col-6 col-md-6 mb-5" >
+
+        <div class="row">
+            <div class="col">
+                <h4> Ajouter un noeud : </h3>
+                    </br>
+                <form method='POST'>
+                    <label for="hauteur" class="form-label"> Fx (N) </label>
+                    <input type="number" class="form-control" id="hauteur" name="fx" value="0">
+                    <label for="hauteur" class="form-label"> Fy (N) </label>
+                    <input type="number" class="form-control" id="hauteur" name="fy" value="0">    
+                    <label for="hauteur" class="form-label"> Mz (N.m) </label>
+                    <input type="number" class="form-control" id="hauteur" name="mz" value="0">             
+                    </br>
+                    <button type="submit" class="btn btn-primary" name="button" value="add_node"> Ajouter </button>
+                    <button type="submit" class="btn btn-secondary" name="button" value="del_node"> Reset </button>
+                    <button type="submit" class="btn btn-danger" name="button" value="del_all_node"> Reset all </button>
+                </form>
+            </div>
+        
+
+        <div class="col">
+            <h4> Tableau de coordonnées des noeuds du maillage : </h3>
+            
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col"> X </th>
+                  <th scope="col"> Y </th>
+                </tr>
+              </thead>
+            
+            {% if NL != [] %}
+              <tbody>
+              
+              {% for i in range(NL|length) %}
+                <tr>
+                    <th scope="row">{{ i + 1 }}</th>
+                    <td>{{ NL[i][0] }}</td>
+                    <td>{{ NL[i][1] }}</td>
+                </tr>  
+              {% endfor %}
+              </tbody>
+            {% endif %}
+            </table>
+        </div>
+        </div>
+        </div>
+        
+        <hr class="col-6 col-md-6 mb-5" >
+
+        
+        
+        
+  
+  </br>
+  {% if res is defined %}
+    <div class="row">
+        <div class="col-4 mx-auto text-center">
+                <img class="rounded" width="520" height="300" src="../static/images/schema_ferme.png">
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+
+ <div class="row row-cols-1 row-cols-md-2 mb-2 text-center">
+      <div class="col">
+        <div class="card mb-4 rounded-3 shadow-sm">
+          <div class="card-header py-3">
+            <h4 class="my-0 fw-normal">Géométrie</h4>
+          </div>
+          <div class="card-body">
+            <h1 class="card-title pricing-card-title">2400€<small class="text-muted fw-light">/j</small></h1>
+            <ul class="list-unstyled mt-3 mb-4">
+              <li>Type de bois : C24</li>
+              <li>Chantier : Maulle</li>
+              <li>Nombre de bois : 23</li>
+              <li>Prix total : 2400€</li>
+            </ul>
+            <button type="button" class="w-100 btn btn-lg btn-outline-primary">Valider</button>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card mb-4 rounded-3 shadow-sm">
+          <div class="card-header py-3">
+            <h4 class="my-0 fw-normal">Modèle</h4>
+          </div>
+          <div class="card-body">
+            <h1 class="card-title pricing-card-title">5600€<small class="text-muted fw-light">/j</small></h1>
+            <ul class="list-unstyled mt-3 mb-4">
+              <li>Type de bois : C24</li>
+              <li>Chantier : Maulle</li>
+              <li>Nombre de bois : 23</li>
+              <li>Prix total : 2400€</li>
+            </ul>
+            <button type="button" class="w-100 btn btn-lg btn-primary">Lancer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class=".col-md-6 .offset-md-3 card rounded-3 shadow-sm">
+      <div class="card-header py-3">
+        <h4 class="my-0 fw-normal">Géométrie</h4>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Type de bois : C24</li>
+          <li>Chantier : Maulle</li>
+          <li>Nombre de bois : 23</li>
+          <li>Prix total : 2400€</li>
+        </ul>
+        <button type="button" class="btn  btn-outline-primary">Valider</button>
+        <button type="button" class="btn  btn-outline-danger">Annuler</button>
+      </div>
+    </div>
+    
+    <div class="mb-3 mt-3 card w-50 rounded-3 shadow-sm">
+      <div class="card-header py-3">
+        <h4 class="my-0 fw-normal"><i class="bi bi-crop"></i> Gestion des conditions limites : </h4>
+      </div>
+      <div class="card-body">
+            <form method='POST'>
+                <div class="form-group row mb-3">
+                    <div class="col-1"> <label for="hauteur" class="form-label"> node </label> </div>
+                    <div class="col-2"> <input type="number" class="form-control" id="hauteur" name="node" value="1"> </div>
+                    <div class="col-1"> <label for="hauteur" class="form-label"> Ux </label> </div>
+                    <div class="col-1"> <input class="form-check-input" type="checkbox" value="" id="ux" name="ux"> </div>
+                    <div class="col-1"> <label for="hauteur" class="form-label"> Uy </label> </div>
+                    <div class="col-1"> <input class="form-check-input" type="checkbox" value="" id="uy" name="uy"> </div>
+                    <div class="col-1"> <label for="hauteur" class="form-label"> Rz </label> </div>
+                    <div class="col-1"> <input class="form-check-input" type="checkbox" value="" id="rz" name="rz"> </div>
+                </div>  
+            </form>
+            <div class="col">
+                <h4> Tableau de coordonnées des noeuds du maillage : </h3>
+                
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col"> X </th>
+                      <th scope="col"> Y </th>
+                    </tr>
+                  </thead>
+                
+                {% if NL != [] %}
+                  <tbody>
+                  
+                  {% for i in range(NL|length) %}
+                    <tr>
+                        <th scope="row">{{ i + 1 }}</th>
+                        <td>{{ NL[i][0] }}</td>
+                        <td>{{ NL[i][1] }}</td>
+                    </tr>  
+                  {% endfor %}
+                  </tbody>
+                {% endif %}
+                </table>
+            </div>
+        <button type="button" class="btn  btn-outline-primary">Valider</button>
+        <button type="button" class="btn  btn-outline-danger">Annuler</button>
+      </div>
+    </div>
+
+
+
+
+
+
+        
+{% endblock %}
