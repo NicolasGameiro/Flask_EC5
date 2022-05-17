@@ -395,7 +395,7 @@ class FEM_Model() :
         #plt.axis('equal')
         #plt.show()
         if pic : 
-            plt.savefig('load.png', format='png', dpi=200)
+            plt.savefig('static/images/load.png', format='png', dpi=200)
         return
     
     def interpol(self,x1,x2,y1,y2,y3,y4,r) : 
@@ -414,6 +414,19 @@ class FEM_Model() :
         x = np.linspace(x1,x2,r)
         y = p(x)
         return x,y
+    
+    def get_bc(self) : 
+        """Return the boundary condition in a matrix format
+        
+        :return: matrix with 1 if the dof is blocked and 0 if the dof is free
+        :rtype: np.array
+        """
+        BC = np.zeros(3*len(self.mesh.node_list))
+        for i in self.lbc : 
+            BC[i] = 1
+        BC = BC.reshape((len(self.mesh.node_list),3))
+        print(BC)
+        return BC
     
     def plot_disp_f_ex(self,scale=1e4,r=150) :
         NL = self.mesh.node_list
@@ -492,7 +505,7 @@ class FEM_Model() :
                      , orientation='vertical') #ScalarMappable(norm = norm_x, cmap = cmap ))
         plt.axis('equal')
         if pic : 
-            plt.savefig('res_' + dir + '.png', format='png', dpi=200)
+            plt.savefig('static/images/res_' + dir + '.png', format='png', dpi=200)
         return
         
     def __str__(self):

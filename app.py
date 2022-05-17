@@ -10,15 +10,7 @@ import base64
 from io import BytesIO
 from matplotlib.figure import Figure
 
-from flask import Flask, render_template, send_file, flash, request, url_for
-from flask_wtf import FlaskForm
-from wtforms import StringField,SubmitField,DecimalField,RadioField,SelectField,IntegerField
-from wtforms.validators import DataRequired
-import plotly 
-import plotly.express as px
-import json
-import pandas as pd
-import numpy as np
+from flask import Flask, render_template, flash, request#, url_for, send_file
 import EC5
 import src.Code_FEM_v4 as fem
 import sys, os
@@ -28,10 +20,9 @@ print(sys.path)
 
 from src.gen_report import rapport
 
-def cb(Load : int, nb_bolt : int) -> int :
-    return Load/nb_bolt
-
 mesh = fem.Mesh(2,[[0,0],[1,0]], [[1,2]])
+f = fem.FEM_Model(mesh)
+
 
 #taux de travail
 classe_de_service = {"classe 1" : 0.8 , 
@@ -47,31 +38,11 @@ categorie_charge_exploitation = { "A" : 1.5,
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "secret"
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-
-    
-class BoltForm(FlaskForm):
-    nb_bolt = IntegerField("Nombre de vis : ")
-    load = IntegerField("Charge appliquée sur les vis : ")
-    submit = SubmitField("Calcul")
-    
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0    
 
 @app.route('/bolt',methods=['GET','POST'])
 def bolt():
-    load = 0
-    nb_bolt = 0
-    res = 0
-    form = BoltForm()
-    #Validate Form 
-    if form.validate_on_submit():
-        nb_bolt = form.nb_bolt.data
-        load = form.load.data
-        res = cb(load,nb_bolt)
-        form.nb_bolt.data = ''
-        form.load.data = ''
-        flash('Le calcul a été lancé !')
-    return render_template('bolt.html', res = res, load = load, nb_bolt = nb_bolt, form = form)
-
+    return render_template('bolt.html')
 
 @app.route('/')
 def index():
@@ -109,35 +80,36 @@ def node():
     if request.method == "POST" and request.form['button'] == "add_node" : 
         x = int(request.form.get("x"))
         y = int(request.form.get("y"))
-        mesh.add_node([x, y])
+        f.mesh.add_node([x, y])
         flash('Le noeud a été ajouté avec succès !')
-        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
+        return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list , BC = f.get_bc() , LL = f.load)
     elif request.method == "POST" and request.form['button'] == "del_node" : 
         x = int(request.form.get("x"))
         y = int(request.form.get("y"))
-        mesh.del_node([x, y])
+        f.mesh.del_node([x, y])
         flash('Le noeud a été supprimé avec succès !')
-        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
+        return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list , BC = f.get_bc() , LL = f.load)
     elif request.method == "POST" and request.form['button'] == "add_elem" : 
         n1 = int(request.form.get("n1"))
         n2 = int(request.form.get("n2"))
-        mesh.add_element([n1, n2])
+        f.mesh.add_element([n1, n2])
         flash("L'element a été ajouté avec succès !")
-        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
+        return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list , BC = f.get_bc() , LL = f.load)
     elif request.method == "POST" and request.form['button'] == "del_elem" : 
         n1 = int(request.form.get("n1"))
         n2 = int(request.form.get("n2"))
-        mesh.del_element([n1, n2])
+        f.mesh.del_element([n1, n2])
         flash("L'element a été supprimé avec succès !")
-        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
+        return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list , BC = f.get_bc() , LL = f.load)
     elif request.method == "POST" and request.form['button'] == "geom" : 
-        flash("node list = "+str(mesh.node_list) + "et element list = " + str(mesh.element_list))
-        mesh.geom(pic = True)
-        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list, im = 'geom.png')
+        flash("node list = "+str(f.mesh.node_list) + "et element list = " + str(f.mesh.element_list))
+        f.mesh.geom(pic = True)
+        return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list,  BC = f.get_bc() , LL = f.load, im = 'geom.png')
     elif request.method == "POST" and request.form['button'] == "run" : 
-        flash("node list = "+str(mesh.node_list) + "et element list = " + str(mesh.element_list))
-        mesh.geom(pic = True)
-        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list, im = 'geom.png')
+        flash("node list = "+str(f.mesh.node_list) + "et element list = " + str(f.mesh.element_list))
+        f.plot_forces(pic = True)
+        f.plot_disp_f(dir='x', pic = True)
+        return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list , BC = f.get_bc() , LL = f.load, im = 'res_x.png')
     elif request.method == "POST" and request.form['button'] == "add_cl" : 
         n = int(request.form.get("node"))
         ux = request.form.get("ux")
@@ -149,13 +121,20 @@ def node():
             uy = 0
         if rz is None : 
             rz = 0
-        f = fem.FEM_Model(mesh)
         f.apply_load([0,-1000,0],4)
         f.apply_bc([int(ux),int(uy),int(rz)],n)
         flash("node " + str(n) + " has the following bc : " + str(ux) + ", " + str(uy) + ", " + str(rz)) 
-        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
+        return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list, BC = f.get_bc() , LL = f.load)
+    elif request.method == "POST" and request.form['button'] == "add_load" : 
+        n = int(request.form.get("node"))
+        fx = request.form.get("fx")
+        fy = request.form.get("fy")
+        mz = request.form.get("mz")
+        f.apply_load([int(fx),int(fy),int(mz)],n)
+        flash("node " + str(n) + " has the following load : Fx = " + str(fx) + ", Fy = " + str(fy) + ", Mz = " + str(mz)) 
+        return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list, BC = f.get_bc() , LL = f.load)
     else : 
-        return render_template("node.html", NL = mesh.node_list , EL = mesh.element_list)
+        return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list, BC = f.get_bc() , LL = f.load)
 
 @app.route('/Report', methods=['POST'])
 def report():
