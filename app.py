@@ -44,6 +44,11 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 def bolt():
     return render_template('bolt.html')
 
+
+@app.route('/assemblage',methods=['GET','POST'])
+def assemblage():
+    return render_template('assemblage.html')
+
 @app.route('/')
 def index():
     return render_template("index.html")

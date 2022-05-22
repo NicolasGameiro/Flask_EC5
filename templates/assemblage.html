@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1> Validation des assemblages </h1>
+    </br>
+    <p>
+        Cette page permet de vérifier la tenue mécanique des assemblages classiques de charpente : 
+        - embrevement
+    </p>
+    
+    </br>
+    <div class="row">
+        <div class="col-6 text-center">
+            <img class="rounded" width="520" height="300" src="../static/images/embrevement.png">
+        </div>
+    </div>
+  
+  
+
+<form action="{{ url_for('assemblage') }}" method='POST'>
+
+    <h2> 1. Géométrie </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+    <div class="row">
+        <div class="col-2">
+            <label for="hauteur" class="form-label">Hauteur entrait h (cm) </label>
+            <input type="number" class="form-control" id="hauteur" name="hauteur" value="22">
+        </div>
+        <div class="col-2">
+            <label for="largeur" class="form-label">Largeur entrait b (cm) </label>
+            <input type="number" class="form-control" name="largeur" value="10">
+        </div>
+        <div class="col-2">
+            <label for="entraxe" class="form-label">Hauteur arbalétrier (cm) </label>
+            <input type="number" class="form-control" name="entraxe" value="100">
+        </div>
+        <div class="col-2">
+            <label for="porte" class="form-label"> Largeur arbalétrier (cm) </label>
+            <input type="number" class="form-control" name="porte" value="400">
+        </div>
+        <div class="col-2">
+            <label for="appuie" class="form-label"> hauteur talon (cm) </label>
+            <input type="number" class="form-control" name="appuie" value="20">
+        </div>
+    </div>
+    
+    
+    <hr class="featurette-divider">
+    
+    <div class="row featurette">
+      <div class="col-md-7 order-md-2">
+        <h2 class="featurette-heading fw-normal lh-1"> Embrevement <span class="text-muted"> Simple </span></h2>
+        <div class="row">
+            <div class="col-2">
+                <label for="hauteur" class="form-label">Hauteur entrait h (cm) </label>
+                <input type="number" class="form-control" id="hauteur" name="hauteur" value="22">
+            </div>
+            <div class="col-2">
+                <label for="largeur" class="form-label">Largeur entrait b (cm) </label>
+                <input type="number" class="form-control" name="largeur" value="10">
+            </div>
+            <div class="col-2">
+                <div class="row">
+                <label for="entraxe" class="form-label">Hauteur arbalétrier (cm) </label>
+                <input type="number" class="form-control" name="entraxe" value="100">
+                </div>
+            </div>
+            <div class="col-2">
+                <label for="porte" class="form-label"> Largeur arbalétrier (cm) </label>
+                <input type="number" class="form-control" name="porte" value="400">
+            </div>
+            <div class="col-2">
+                <label for="appuie" class="form-label"> hauteur talon (cm) </label>
+                <input type="number" class="form-control" name="appuie" value="20">
+            </div>
+        </div>
+      </div>
+      <div class="col-md-5 order-md-1">
+        <img class="bd-placeholder-img bd-placeholder-img-lg featurette-image img-fluid mx-auto" width="520" height="300" src="../static/images/embrevement.png">
+      </div>
+    </div>
+    
+    <hr class="featurette-divider">
+    
+    
+    <h2> 2. Environnemennt : </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+    <div class="row">
+        <div class="col-3">
+        <label for="C" class="form-label"> Type de bois </label>
+        <select name="type_bois" class="form-select" aria-label="Default select example">
+            <option value="BM" selected>Bois massif</option>
+            <option value="BLC">Bois lamelé collé</option>
+            <option value="LVL">LVL</option>
+        </select>
+        </div>
+        <div class="col-3">
+        <label for="C" class="form-label">Classse de qualité du bois </label>
+        <select name="classe_bois" class="form-select" aria-label="Default select example">
+            <option value="C22">C22</option>
+            <option value="C24" selected>C24</option>
+            <option value="C26">C26</option>
+        </select>
+        </div>
+        <div class="col-3">
+        <label for="C" class="form-label">Classe de service </label>
+        <select name="classe_service" class="form-select" aria-label="Default select example">
+            <option value="classe 1" selected>classe 1</option>
+            <option value="classe 2">classe 2</option>
+            <option value="classe 3">classe 3</option>
+        </select>
+        </div>
+    </div>
+    
+    </br>
+    <h2> 3. Chargement : </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+    
+    <div class="row">
+        <div class="col-3">
+            <label for="perm" class="form-label"> Charge Permanante G (kN/m2) </label>
+            <input type="text" class="form-control" name="G" value="0.5">
+        </div>
+        <div class="col-3">
+        <label for="C" class="form-label">Catégorie charge d'exploitation Q (kN/m2) </label>
+        <select name="Cat_charge" class="form-select" aria-label="Default select example">
+            <option value="1.5" selected>A : Habitation (1.5 kN/m2) </option>
+            <option value="2.5">B : Bureaux (2.5 kN/m2)</option>
+            <option value="2.5">C : Lieux de réunion (2.5 kN/m2)</option>
+            <option value="5">D : Commerce (5 kN/m2)</option>
+            <option value="7.5">E : Stockage (7.5 kN/m2)</option>
+        </select>
+        </div>
+    </div>
+    
+    </br>
+    <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="exampleCheck1">
+        <label class="form-check-label" for="exampleCheck1">Calcul du second ordre</label>
+    </div>
+    
+    </br>
+    <button type="submit" class="btn btn-primary"> Calculer ! </button>
+</form>
+
+    {% if res is defined %}
+    </br> 
+    <h2> 4. Résultats </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+    
+        <p> La charge linéique ELU vaut {{ q }} kN. </p>
+        
+    <div class="col">
+    <table class="table align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th scope="col">Contrainte (MPa) </th>
+          <th scope="col">Traction-compression</th>
+          <th scope="col">Flexion</th>
+          <th scope="col">Cisaillement</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Contrainte (MPa)</th>
+          {% for s in sig[:3] %}
+          <td style="width: 25%">{{ s }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row">Taux de travail</th>
+            {% for r in res[:3] %}
+            <td style="width: 25%" {% if r > 100 %} class="table-danger" {% else %} class="table-success" {% endif %}>{{ r }} %</td>
+            {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    
+    <form action="{{ url_for('report') }}" method='POST'>   
+    <div class="row">
+        <div class="col-2">
+            <button type="submit" class="btn btn-success" name="button" values="save"> Enregistrer les résultats</button>
+        </div>
+        <div class="col-2">
+            <button type="submit" class="btn btn-danger" name="button" values="erase"> Effacer les résultats </button>
+        </div>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

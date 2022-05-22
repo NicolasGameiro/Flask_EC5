@@ -50,8 +50,11 @@ import time, datetime
 class Mesh : 
     def __init__(self, dim, node_list = [], element_list = [], S_list = [], I_list = [], h = 0.22, b = 0.10, debug = False) :
         self.dim = dim
-        self.node_list = np.array(node_list)
-        self.element_list = np.array(element_list)
+        self.node_list = np.empty((0,dim))
+        self.element_list = np.empty((0,2),dtype = int)
+        self.name = np.empty((0,1))
+        self.color = np.empty((0,1))
+        self.Section = np.empty((0,2))
         self.S_list = np.array(S_list)
         self.I_list = np.array(I_list)
         self.S = h*b
@@ -65,7 +68,7 @@ class Mesh :
         else :
             found, index = self.check_node(node)
             if found == False : 
-                self.node_list = np.append(self.node_list,[node], axis=0)
+                self.node_list = np.append(self.node_list,np.array([node]), axis=0)
                 print("noeud ajouté")
             else :
                 print("noeud deja dans le maillage")
@@ -75,7 +78,7 @@ class Mesh :
     def check_node(self,node) : 
         index = -1
         found = False
-        while (found is not True) and (index+1 < len(self.node_list)) : 
+        while (found is not True) and (index+1 < len(self.node_list)) and (self.node_list.size != 0) : 
             index += 1
             if (self.node_list[index][0] == node[0]) and (self.node_list[index][1] == node[1]) :
                 found = True
@@ -102,27 +105,35 @@ class Mesh :
             print(self.node_list)
         return
     
+    ### GESTION DES ELEMENTS
+    
     def check_elem(self,elem) : 
         index = -1
         found = False
-        while (found is not True) and (index+1 < len(self.element_list)) : 
+        while (found is not True) and (index+1 < len(self.element_list)) and (self.element_list.size != 0): 
             index += 1
             if (self.element_list[index][0] == elem[0]) and (self.element_list[index][1] == elem[1]) :
                 found = True
         return found, index
     
-    def add_element(self,elem) : 
+    def add_element(self, elem, name = "poutre", color = "k", h = "22", l = "10") : 
         if len(elem) != self.dim : 
             print("Erreur : format de l'element incorrect")
         else :
             found, index = self.check_elem(elem)
             if found == False : 
-                self.element_list = np.append(self.element_list,[elem], axis=0)
+                self.element_list = np.append(self.element_list,np.array([elem]), axis=0)
+                self.name = np.append(self.name, np.array(name))
+                self.color = np.append(self.color, np.array(color))
+                self.Section = np.append(self.Section, np.array([[h, l]]), axis = 0)
                 print("element ajouté")
             else :
                 print("element deja dans le maillage")
             if self.debug == True : 
                 print(self.element_list)
+                print(self.name)
+                print(self.color)
+                print(self.Section)
     
     def del_element(self, element) : 
         if len(element) != self.dim : 
@@ -158,33 +169,38 @@ class Mesh :
     - Nombre d'éléments : {len(self.element_list)}
     """
     
-    def geom(self, pic = False) : 
+    def geom(self, pic = False, path = "./") : 
         if self.dim == 2 :
             fig = self.geom2D(pic)
         else : 
             fig = self.geom3D(pic)
         return fig
     
-    def geom2D(self, pic = False) : 
+    def geom2D(self, pic = False, path = "./") : 
         fig = plt.figure(figsize=(8,6))
         x = [x for x in self.node_list[:,0]]
         y = [y for y in self.node_list[:,1]]
         size = 200
         offset = size/40000.
-        plt.scatter(x, y, c='y', s=size, zorder=5)
+        plt.scatter(x, y, c='k', marker = "s", s=size, zorder=5)
+        color_list = []
         for i, location in enumerate(zip(x,y)):
             plt.annotate(i+1, (location[0]-offset, location[1]-offset), zorder=10)
         for i in range(len(self.element_list)) :
             xi,xj = self.node_list[self.element_list[i,0]-1,0],self.node_list[self.element_list[i,1]-1,0]
             yi,yj = self.node_list[self.element_list[i,0]-1,1],self.node_list[self.element_list[i,1]-1,1]
-            plt.plot([xi,xj],[yi,yj],color = 'k', lw = 1, linestyle = '--')
+            plt.plot([xi,xj],[yi,yj],color = self.color[i], lw = 2, linestyle = '--', label = self.name[i] if self.color[i] not in color_list else '')
+            # pour verifier que la legende n'existe pas deja
+            if (self.color == self.color[i]).sum() > 1 : 
+                color_list.append(self.color[i])
         plt.axis('equal')
+        plt.legend()
         plt.grid()
         if pic : 
-            plt.savefig('static/images/geom.png', format='png', dpi=200)
+            plt.savefig(path + 'geom.png', format='png', dpi=200)
         return fig
     
-    def geom3D(self, pic = False) : 
+    def geom3D(self, pic = False, path = "./") : 
         fig = plt.figure(figsize=(8,6))
         #plt.gca(projection='3d')
         ax = fig.add_subplot(111, projection='3d')
@@ -206,7 +222,7 @@ class Mesh :
         ax.set_zlabel('Z')
         ax.set_box_aspect([1,1,1])
         if pic : 
-            plt.savefig('static/images/geom.png', format='png', dpi=200)
+            plt.savefig(path + 'geom.png', format='png', dpi=200)
         return fig
         
 class FEM_Model() : 
@@ -274,9 +290,9 @@ class FEM_Model() :
                       [-s, c]])
         return R
     
-    def K_elem(self,L_e) :
-        S = self.mesh.S
-        I = self.mesh.Iy
+    def K_elem(self,L_e, h, b) :
+        S = h*b*1e-4
+        I = b*h**3/12*1e-8
         K_elem = self.E/L_e*np.array([[S, 0, 0 , -S, 0, 0],
                                     [0, 12*I/L_e**2 , 6*I/L_e, 0, -12*I/L_e**2, 6*I/L_e],
                                     [0, 6*I/L_e , 4*I, 0, -6*I/L_e, 2*I],
@@ -292,9 +308,9 @@ class FEM_Model() :
         self.sig = np.zeros([len(self.mesh.node_list),3])
         for i in range(len(self.mesh.node_list)) : 
             #en MPa
-            self.sig[i,0] = self.load[i,0]/S/1e6 # traction/compression
-            self.sig[i,1] = self.load[i,1]/S/1e6 # cisaillement
-            self.sig[i,2] = self.load[i,2]/I*(h/2)/1e6 # flexion
+            self.sig[i,0] = self.load[i,0]/S/1e6 # traction/compression (en MPa)
+            self.sig[i,1] = self.load[i,1]/S/1e6 # cisaillement (en MPa)
+            self.sig[i,2] = self.load[i,2]/I*(h/2)/1e6 # flexion (en MPa)
         print(self.sig)
         
     
@@ -401,7 +417,6 @@ class FEM_Model() :
         for i in self.lbc : 
             BC[i] = 1
         BC = BC.reshape((len(self.mesh.node_list),3))
-        print(BC)
         return BC
         
 
@@ -421,8 +436,9 @@ class FEM_Model() :
             L_e = self.get_length(element)
             c,s = self.get_angle(element)
             rot = self.Rot(c,s)
+            h, b = self.mesh.Section[i,0], self.mesh.Section[i,1]
             # rotation matrice elem
-            K_rot = rot.dot(self.K_elem(L_e)).dot(np.transpose(rot))
+            K_rot = rot.dot(self.K_elem(L_e, h , b)).dot(np.transpose(rot))
             M_global = M_global + self.changement_base(BB[i],K_rot)
         return M_global
 
@@ -525,7 +541,7 @@ class FEM_Model() :
         plt.show()
         return
     
-    def plot_forces(self, type = 'nodal', pic = False) :
+    def plot_forces(self, type = 'nodal', pic = False, path = "./") :
         plt.figure()
         F = self.load
         NL = self.mesh.node_list
@@ -540,7 +556,7 @@ class FEM_Model() :
         for i in range(len(self.mesh.element_list)) :
             xi,xj = self.mesh.node_list[self.mesh.element_list[i,0]-1,0],self.mesh.node_list[self.mesh.element_list[i,1]-1,0]
             yi,yj = self.mesh.node_list[self.mesh.element_list[i,0]-1,1],self.mesh.node_list[self.mesh.element_list[i,1]-1,1]
-            plt.plot([xi,xj],[yi,yj],color = 'k', lw = 1, linestyle = '--')
+            plt.plot([xi,xj],[yi,yj],color = self.mesh.color[i], lw = 1, linestyle = '--')
         ### Trace les efforts
         if type == 'nodal':
             plt.quiver(NL[:,0], NL[:,1], F[:,0], F[:,1], color='r', angles='xy', scale_units='xy', scale=scale_force)
@@ -555,7 +571,7 @@ class FEM_Model() :
         plt.axis('equal')
         #plt.show()
         if pic : 
-            plt.savefig('static/images/load.png', format='png', dpi=200)
+            plt.savefig(path + 'load.png', format='png', dpi=200)
         return
     
     def interpol(self,x1,x2,y1,y2,y3,y4,r) : 
@@ -614,7 +630,7 @@ class FEM_Model() :
         plt.axis('equal')
         return
 
-    def plot_disp_f(self,scale=1e4,r=150,dir='x', pic = False) :
+    def plot_disp_f(self,scale=1e4,r=150,dir='x', pic = False, path = "./") :
         NL = self.mesh.node_list
         EL = self.mesh.element_list
         U = self.U
@@ -652,7 +668,7 @@ class FEM_Model() :
                      , orientation='vertical') #ScalarMappable(norm = norm_x, cmap = cmap ))
         plt.axis('equal')
         if pic : 
-            plt.savefig('static/images/res_' + dir + '.png', format='png', dpi=200)
+            plt.savefig(path + 'res_' + dir + '.png', format='png', dpi=200)
         return
         
     def __str__(self):
@@ -661,14 +677,14 @@ class FEM_Model() :
     def U_table(self):
         tab = pt()
         if self.mesh.dim == 2 :
-            tab.field_names = ["Node","Ux", "Uy", "Phi"]
+            tab.field_names = ["Node","Ux (m)", "Uy (m)", "Phi (rad)"]
             for i in range(len(self.mesh.node_list)) : 
                 tab.add_row([int(i+1),
                              np.format_float_scientific(self.U[i][0], precision = 2, exp_digits=2),
                             np.format_float_scientific(self.U[i+1][0], precision = 2, exp_digits=2),
                             np.format_float_scientific(self.U[i+2][0], precision = 2, exp_digits=2)])
         else :
-            tab.field_names = ["Node","Ux", "Uy", "Uz", "Phix", "Phiy", "Phiz"]
+            tab.field_names = ["Node","Ux (m)", "Uy (m)", "Uz (m)", "Phix (rad)", "Phiy (rad)", "Phiz (rad)"]
             for i in range(len(self.mesh.node_list)) : 
                 tab.add_row([int(i+1), 
                              np.format_float_scientific(self.U[i][0], precision = 2, exp_digits=2),
@@ -682,7 +698,7 @@ class FEM_Model() :
     def R_table(self):
         tab = pt()
         if self.mesh.dim == 2 :
-            tab.field_names = ["Node","Fx", "Fy", "Mz"]
+            tab.field_names = ["Node","Fx (N)", "Fy (N)", "Mz (N.m)"]
             for i in range(len(self.mesh.node_list)) : 
                 tab.add_row([int(i+1), 
                              np.format_float_scientific(self.React[i][0], precision = 2, exp_digits=2),
@@ -745,16 +761,19 @@ def test_3d() :
     return
 
 def test_2d() : 
-    mesh = Mesh(2,[[0,0],[2,0]],[[1,2]],debug = True)
-    mesh.add_node([4,0])
-    mesh.del_node([5,0])
-    mesh.add_node([4,0])
-    mesh.add_node([2,3])
-    mesh.add_element([2,3])
-    mesh.add_element([3,4])
-    mesh.add_element([4,1])
-    mesh.add_element([4,2])
-    #mesh.geom()
+    mesh = Mesh(2,[],[],debug = False)
+    p = 6.5
+    h = 2.5
+    mesh.add_node([0,0])
+    mesh.add_node([p/2,0])
+    mesh.add_node([p,0])
+    mesh.add_node([p/2,h])
+    mesh.add_element([1,2], "entrait", "r", 22, 10)
+    mesh.add_element([2,3], "entrait", "r", 22 , 10)
+    mesh.add_element([3,4], "arba", "g", 20, 8)
+    mesh.add_element([4,1], "arba", "g", 20, 8)
+    mesh.add_element([4,2], "poinçon", "b", 10, 10)
+    mesh.geom()
     #mesh.node_table()
     
     f = FEM_Model(mesh)
@@ -762,8 +781,8 @@ def test_2d() :
     f.apply_bc([1,1,1],1)
     f.apply_bc([1,1,0],3)
     f.get_bc()
-    f.apply_distributed_load(1000, [1,2])
-    f.apply_distributed_load(1000, [2,3])
+    f.apply_distributed_load(2000, [1,2])
+    f.apply_distributed_load(2000, [2,3])
     f.plot_forces(type = 'dist', pic = True)
     f.solver_frame()
     U, React, res = f.get_res()
@@ -771,8 +790,8 @@ def test_2d() :
     #f.plot_disp_f(dir='y' , pic = True)
     f.plot_disp_f(dir='sum', pic = True)
     #f.plot_disp_f_ex()
-    #f.U_table()
-    #f.R_table()
+    f.U_table()
+    f.R_table()
     f.stress()
     #f.rapport()
     return 
