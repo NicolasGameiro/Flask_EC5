@@ -57,9 +57,6 @@ class Mesh :
         self.Section = np.empty((0,2))
         self.S_list = np.array(S_list)
         self.I_list = np.array(I_list)
-        self.S = h*b
-        self.Iy = b*h**3/12
-        self.Iz = h*b**3/12
         self.debug = debug
     
     def add_node(self,node) : 
@@ -176,27 +173,46 @@ class Mesh :
             fig = self.geom3D(pic)
         return fig
     
-    def geom2D(self, pic = False, path = "./") : 
-        fig = plt.figure(figsize=(8,6))
-        x = [x for x in self.node_list[:,0]]
-        y = [y for y in self.node_list[:,1]]
-        size = 200
-        offset = size/40000.
-        plt.scatter(x, y, c='k', marker = "s", s=size, zorder=5)
+    def geom2D(self, pic=False, path="./"):
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111)
+        x = [x for x in self.node_list[:, 0]]
+        y = [y for y in self.node_list[:, 1]]
+        size = 10
+        offset = size / 40000.
+        ax.scatter(x, y, c='k', marker="s", s=size, zorder=5)
         color_list = []
-        for i, location in enumerate(zip(x,y)):
-            plt.annotate(i+1, (location[0]-offset, location[1]-offset), zorder=10)
-        for i in range(len(self.element_list)) :
-            xi,xj = self.node_list[self.element_list[i,0]-1,0],self.node_list[self.element_list[i,1]-1,0]
-            yi,yj = self.node_list[self.element_list[i,0]-1,1],self.node_list[self.element_list[i,1]-1,1]
-            plt.plot([xi,xj],[yi,yj],color = self.color[i], lw = 2, linestyle = '--', label = self.name[i] if self.color[i] not in color_list else '')
+        for i, location in enumerate(zip(x, y)):
+            ax.annotate(i + 1, (location[0] - offset, location[1] - offset), zorder=10)
+        for i in range(len(self.element_list)):
+            xi, xj = self.node_list[self.element_list[i, 0] - 1, 0], self.node_list[self.element_list[i, 1] - 1, 0]
+            yi, yj = self.node_list[self.element_list[i, 0] - 1, 1], self.node_list[self.element_list[i, 1] - 1, 1]
+            ax.plot([xi, xj], [yi, yj], color=self.color[i], lw=2, linestyle='--',
+            label=self.name[i] if self.color[i] not in color_list else '')
+
+            h = self.Section[i][0]/100
+
+            if xi != xj :
+                pt1 = [xi , yi - h/2]
+                pt2 = [xj , yj-h/2]
+                pt3 = [xj , yj + h/2]
+                pt4 = [xi, yi + h/2]
+            else :
+                pt1 = [xi - h/2 , yi]
+                pt2 = [xj -h/2 , yj]
+                pt3 = [xj + h/2, yj ]
+                pt4 = [xi + h/2, yi ]
+
+            x = pt1[0], pt2[0], pt3[0], pt4[0], pt1[0]
+            y = pt1[1], pt2[1], pt3[1], pt4[1], pt1[1]
+            ax.add_patch(Polygon(xy=list(zip(x, y)), color=self.color[i], fill=True, alpha=0.3, lw=0))
             # pour verifier que la legende n'existe pas deja
-            if (self.color == self.color[i]).sum() > 1 : 
+            if (self.color == self.color[i]).sum() > 1:
                 color_list.append(self.color[i])
-        plt.axis('equal')
-        plt.legend()
+        ax.axis('equal')
+        ax.legend()
         plt.grid()
-        if pic : 
+        if pic:
             plt.savefig(path + 'geom.png', format='png', dpi=200)
         return fig
     
@@ -438,7 +454,7 @@ class FEM_Model() :
             rot = self.Rot(c,s)
             h, b = self.mesh.Section[i,0], self.mesh.Section[i,1]
             # rotation matrice elem
-            K_rot = rot.dot(self.K_elem(L_e, h , b)).dot(np.transpose(rot))
+            K_rot = np.transpose(rot).dot(self.K_elem(L_e, h , b)).dot(rot)
             M_global = M_global + self.changement_base(BB[i],K_rot)
         return M_global
 
@@ -559,7 +575,7 @@ class FEM_Model() :
             plt.plot([xi,xj],[yi,yj],color = self.mesh.color[i], lw = 1, linestyle = '--')
         ### Trace les efforts
         if type == 'nodal':
-            plt.quiver(NL[:,0], NL[:,1], F[:,0], F[:,1], color='r', angles='xy', scale_units='xy', scale=scale_force)
+            plt.quiver(NL[:,0] - F[:,0]/scale_force , NL[:,1] - F[:,1]/scale_force , F[:,0], F[:,1], color='r', angles='xy', scale_units='xy', scale=scale_force)
         elif type == 'dist':
             for elem in self.dist_load[1:]:
                 pt1 = self.mesh.node_list[elem[0]-1]
@@ -768,50 +784,59 @@ def test_2d() :
     mesh.add_node([p/2,0])
     mesh.add_node([p,0])
     mesh.add_node([p/2,h])
+    mesh.add_node([p/4,h/2])
+    mesh.add_node([3*p/4,h/2])
     mesh.add_element([1,2], "entrait", "r", 22, 10)
     mesh.add_element([2,3], "entrait", "r", 22 , 10)
-    mesh.add_element([3,4], "arba", "g", 20, 8)
-    mesh.add_element([4,1], "arba", "g", 20, 8)
+    mesh.add_element([3,6], "arba", "g", 20, 8)
+    mesh.add_element([6,4], "arba", "g", 20, 8)
+    mesh.add_element([4,5], "arba", "g", 20, 8)
+    mesh.add_element([5,1], "arba", "g", 20, 8)
     mesh.add_element([4,2], "poinçon", "b", 10, 10)
+    mesh.add_element([2,5], "jdf", "m", 10,10)
+    mesh.add_element([2,6], "jdf", "m", 10,10)
     mesh.geom()
     #mesh.node_table()
     
     f = FEM_Model(mesh)
     f.apply_load([0,-1000,0],4)
     f.apply_bc([1,1,1],1)
-    f.apply_bc([1,1,0],3)
-    f.get_bc()
-    f.apply_distributed_load(2000, [1,2])
-    f.apply_distributed_load(2000, [2,3])
-    f.plot_forces(type = 'dist', pic = True)
+    f.apply_bc([1,1,1],3)
+    print(f.get_bc())
+    #f.apply_distributed_load(2000, [1,4])
+    #f.apply_distributed_load(2000, [4,3])
+    f.plot_forces(type = 'nodal', pic = True)
     f.solver_frame()
     U, React, res = f.get_res()
     #f.plot_disp_f(dir='x', pic = True)
     #f.plot_disp_f(dir='y' , pic = True)
-    f.plot_disp_f(dir='sum', pic = True)
+    f.plot_disp_f(dir='x', pic = True)
     #f.plot_disp_f_ex()
     f.U_table()
     f.R_table()
-    f.stress()
+   # f.stress()
     #f.rapport()
     return 
 
 def test_cantilever() : 
-    mesh = Mesh(2,[[0,0],[3,0]],[[1,2]],debug=False)
+    mesh = Mesh(2,[],[],debug=False)
+    mesh.add_node([0,0])
+    mesh.add_node([1,0])
+    mesh.add_node([2,0])
     mesh.add_node([4,0])
     mesh.add_node([5,0])
-    mesh.add_node([6,0])
-    mesh.add_element([2,3])
-    mesh.add_element([3,4])
-    mesh.add_element([4,5])
+    mesh.add_element([1,2], "entrait", "r", 22, 10)
+    mesh.add_element([2,3], "entrait", "r", 22, 10)
+    mesh.add_element([3,4], "entrait", "r", 22, 10)
+    mesh.add_element([4,5], "entrait", "r", 22, 10)
     mesh.node_table()
     f = FEM_Model(mesh)
     f.apply_load([0,-1000,0],5)
     f.apply_bc([1,1,1],1)
-    f.plot_forces()
+    f.plot_forces(type = 'dist', pic = False)
     f.solver_frame()
     U, React = f.get_res()
-    f.plot_disp_f_ex(scale=1e2)
+    #f.plot_disp_f_ex(scale=1e2)
     f.plot_disp_f(scale=1e2,dir='y')
     f.U_table()
     return 
