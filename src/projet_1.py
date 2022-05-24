@@ -5,20 +5,24 @@ Created on Fri May 20 23:17:35 2022
 @author: ngameiro
 """
 
-import Code_FEM_v4 as fem
+import Code_FEM_v5 as fem
 import tracer_charpente_v5 as tc5
 
 p = 6.5 + 0.8*2
 h = 1.93
 
 #Maillage
-mesh = fem.Mesh(2,[[0,0],[p/2,0]], [[1,2]])
+mesh = fem.Mesh(2)
+mesh.add_node([0,0])
+mesh.add_node([p/2,0])
 mesh.add_node([p,0])
 mesh.add_node([p/2,h])
-mesh.add_element([2,3])
-mesh.add_element([3,4])
-mesh.add_element([4,2])
-mesh.add_element([4,1])
+mesh.add_element([1,2], "entrait", "r", 22 ,10)
+mesh.add_element([2,3], "entrait", "r", 22 ,10)
+mesh.add_element([3,4], "arba", "b", 22 ,10)
+mesh.add_element([4,2], "poinçon", "m", 22 ,10)
+mesh.add_element([4,1], "arba", "b", 22 ,10)
+mesh.geom()
 
 #Modele
 f = fem.FEM_Model(mesh)

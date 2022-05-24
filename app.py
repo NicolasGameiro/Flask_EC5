@@ -63,12 +63,11 @@ def solive():
         pp = 0.4
         G = float(request.form.get('G'))
         Q = float(request.form.get('Cat_charge'))
-        b = request.form.get('type_bois')
         cs = request.form.get("classe_service")
         cq = request.form.get("classe_bois")
         q_elu, q_els = EC5.charge(bande, pp, G, Q)
         sig = EC5.calcul_solive(h, l, bande, p, q_elu, q_els)
-        res = EC5.calcul_taux_trav(sig[0], sig[1], sig[2], b, cs, cq)
+        res = EC5.calcul_taux_trav(sig[0], sig[1], sig[2], cs, cq)
         return render_template("solive.html", q = q_elu ,sig = sig,  res = res)
         flash('calcul lancé !')
         #stc, sf, sc, fleche = calcul_solive(h, l, e, p, c_p, c_v)

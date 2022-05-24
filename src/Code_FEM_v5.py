@@ -48,7 +48,7 @@ from docx.shared import Mm
 import time, datetime
 
 class Mesh : 
-    def __init__(self, dim, node_list = [], element_list = [], S_list = [], I_list = [], h = 0.22, b = 0.10, debug = False) :
+    def __init__(self, dim, node_list = [], element_list = [], S_list = [], I_list = [], h = 22, b = 10, debug = False) :
         self.dim = dim
         self.node_list = np.empty((0,dim))
         self.element_list = np.empty((0,2),dtype = int)
@@ -242,7 +242,7 @@ class Mesh :
         return fig
         
 class FEM_Model() : 
-    def __init__(self, mesh, E = 2.1E11) :
+    def __init__(self, mesh, E = 10.0E9) :
         self.mesh = mesh
         self.E = E
         self.load = np.zeros([len(self.mesh.node_list),3])
@@ -293,11 +293,11 @@ class FEM_Model() :
             print("boundary condition applied")
     
     def Rot(self,c,s) : 
-        Rotation_matrix =  np.array([[c, s , 0, 0 , 0, 0],
-                                     [-s, c, 0, 0 , 0, 0],
+        Rotation_matrix =  np.array([[c, -s , 0, 0 , 0, 0],
+                                     [s, c, 0, 0 , 0, 0],
                                      [0, 0, 1, 0, 0 , 0],
-                                     [0, 0 , 0 ,c ,s , 0 ],
-                                     [0, 0, 0, -s, c, 0],
+                                     [0, 0 , 0 ,c ,-s , 0 ],
+                                     [0, 0, 0, s, c, 0],
                                      [0, 0, 0, 0, 0 , 1]])
         return Rotation_matrix
     
@@ -454,8 +454,15 @@ class FEM_Model() :
             rot = self.Rot(c,s)
             h, b = self.mesh.Section[i,0], self.mesh.Section[i,1]
             # rotation matrice elem
-            K_rot = np.transpose(rot).dot(self.K_elem(L_e, h , b)).dot(rot)
+            K_rot = rot.dot(self.K_elem(L_e, h , b)).dot(np.transpose(rot))
             M_global = M_global + self.changement_base(BB[i],K_rot)
+            if self.mesh.debug == True : 
+                print("element " + str(i+1) + " :")
+                print(BB[i])
+                print(rot)
+                print("matrice elementaire : ")
+                print(self.K_elem(L_e, h, b))
+                print(K_rot)
         return M_global
 
     def solver_frame(self) :
@@ -646,7 +653,7 @@ class FEM_Model() :
         plt.axis('equal')
         return
 
-    def plot_disp_f(self,scale=1e4,r=150,dir='x', pic = False, path = "./") :
+    def plot_disp_f(self,scale=1e3,r=150,dir='x', pic = False, path = "./") :
         NL = self.mesh.node_list
         EL = self.mesh.element_list
         U = self.U
@@ -696,19 +703,19 @@ class FEM_Model() :
             tab.field_names = ["Node","Ux (m)", "Uy (m)", "Phi (rad)"]
             for i in range(len(self.mesh.node_list)) : 
                 tab.add_row([int(i+1),
-                             np.format_float_scientific(self.U[i][0], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i+1][0], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i+2][0], precision = 2, exp_digits=2)])
+                             np.format_float_scientific(self.U[i*3], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*3+1], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*3+2], precision = 2, exp_digits=2)])
         else :
             tab.field_names = ["Node","Ux (m)", "Uy (m)", "Uz (m)", "Phix (rad)", "Phiy (rad)", "Phiz (rad)"]
             for i in range(len(self.mesh.node_list)) : 
                 tab.add_row([int(i+1), 
                              np.format_float_scientific(self.U[i][0], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i+1][0], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i+2][0], precision = 2, exp_digits=2), 
-                             np.format_float_scientific(self.U[i+3][0], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i+4][0], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i+5][0], precision = 2, exp_digits=2)])
+                            np.format_float_scientific(self.U[i][1], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i][2], precision = 2, exp_digits=2), 
+                             np.format_float_scientific(self.U[i][3], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i][4], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i][5], precision = 2, exp_digits=2)])
         print(tab)
         
     def R_table(self):
@@ -776,6 +783,52 @@ def test_3d() :
     f.charge_3D([0,0,0],[1,1,1],5)
     return
 
+def validation_2d() : 
+    mesh = Mesh(2,[],[],debug = True)
+    mesh.add_node([0,0])
+    mesh.add_node([0,2])
+    mesh.add_node([2,2])
+    mesh.add_element([1,2], "barre", "b",12, 12)
+    mesh.add_element([2,3], "barre", "b",12, 12)
+    mesh.geom()
+    
+    f = FEM_Model(mesh)
+    f.apply_load([0,-100,0],3)
+    f.apply_bc([1,1,1],1)
+    print(f.get_bc())
+    f.plot_forces(type = 'nodal', pic = True)
+    f.solver_frame()
+    f.plot_disp_f(dir='x', pic = True)
+    f.plot_disp_f(dir='y' , pic = True)
+    f.plot_disp_f(dir='sum', pic = True)
+    f.plot_disp_f_ex()
+    f.U_table()
+    f.R_table()
+    
+def validation_2d() : 
+    mesh = Mesh(2,[],[],debug = True)
+    mesh.add_node([0,0])
+    mesh.add_node([0,80]) #inches
+    mesh.add_node([100,80]) #inches
+    mesh.add_element([1,2], "barre", "b",12, 12)
+    mesh.add_element([2,3], "barre", "b",12, 12)
+    #mesh.geom()
+    
+    f = FEM_Model(mesh)
+    f.apply_distributed_load(100, [2,3])
+    f.apply_bc([1,1,1],1)
+    f.apply_bc([0,1,0],3)
+    print(f.get_bc())
+    f.plot_forces(type = 'nodal', pic = True)
+    f.solver_frame()
+    f.plot_disp_f(dir='x', pic = True)
+    f.plot_disp_f(dir='y' , pic = True)
+    f.plot_disp_f(dir='sum', pic = True)
+    #f.plot_disp_f_ex()
+    f.U_table()
+    f.R_table()
+
+
 def test_2d() : 
     mesh = Mesh(2,[],[],debug = False)
     p = 6.5
@@ -799,18 +852,18 @@ def test_2d() :
     #mesh.node_table()
     
     f = FEM_Model(mesh)
-    f.apply_load([0,-1000,0],4)
+    #f.apply_load([0,-1000,0],4)
     f.apply_bc([1,1,1],1)
     f.apply_bc([1,1,1],3)
     print(f.get_bc())
-    #f.apply_distributed_load(2000, [1,4])
-    #f.apply_distributed_load(2000, [4,3])
-    f.plot_forces(type = 'nodal', pic = True)
+    f.apply_distributed_load(2000, [1,4])
+    f.apply_distributed_load(2000, [4,3])
+    f.plot_forces(type = 'dist', pic = True)
     f.solver_frame()
     U, React, res = f.get_res()
-    #f.plot_disp_f(dir='x', pic = True)
-    #f.plot_disp_f(dir='y' , pic = True)
-    f.plot_disp_f(dir='x', pic = True)
+    f.plot_disp_f(dir='x', scale = 1e3, pic = True)
+    f.plot_disp_f(dir='y' , scale = 1e3, pic = True)
+    f.plot_disp_f(dir='sum', scale = 1e3, pic = True)
     #f.plot_disp_f_ex()
     f.U_table()
     f.R_table()

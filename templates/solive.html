@@ -49,26 +49,30 @@
     <div class="row">
         <div class="col-3">
         <label for="C" class="form-label"> Type de bois </label>
-        <select name="type_bois" class="form-select" aria-label="Default select example">
-            <option value="BM" selected>Bois massif</option>
-            <option value="BLC">Bois lamelé collé</option>
-            <option value="LVL">LVL</option>
-        </select>
-        </div>
-        <div class="col-3">
-        <label for="C" class="form-label">Classse de qualité du bois </label>
         <select name="classe_bois" class="form-select" aria-label="Default select example">
-            <option value="C22">C22</option>
-            <option value="C24" selected>C24</option>
-            <option value="C26">C26</option>
+            <optgroup label="Bois massifs résineux">
+                <option value="C18">C18</option>
+                <option value="C22">C22</option>
+                <option value="C24" selected>C24</option>
+              </optgroup>
+            <optgroup label="Bois massif feuillus">
+              <option value="D30">D30</option>
+              <option>D35</option>
+              <option>D40</option>
+            </optgroup>
+            <optgroup label="lamellés-collés homogènes">
+              <option>GL24h</option>
+              <option>GL28h</option>
+              <option>GL32h</option>
+            </optgroup>
         </select>
         </div>
         <div class="col-3">
         <label for="C" class="form-label">Classe de service </label>
         <select name="classe_service" class="form-select" aria-label="Default select example">
-            <option value="classe 1" selected>classe 1</option>
-            <option value="classe 2">classe 2</option>
-            <option value="classe 3">classe 3</option>
+            <option value="classe 1" selected>classe 1 : local chauffé </option>
+            <option value="classe 2">classe 2 : en extérieur, sous abris </option>
+            <option value="classe 3">classe 3 : extérieur non abrité, exposé </option>
         </select>
         </div>
     </div>
