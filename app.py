@@ -14,6 +14,7 @@ from flask import Flask, render_template, flash, request#, url_for, send_file
 import EC5
 import src.Code_FEM_v4 as fem
 import sys, os
+import json
 print(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+'\\src')
 print(sys.path)
@@ -22,6 +23,8 @@ from src.gen_report import rapport
 
 mesh = fem.Mesh(2,[[0,0],[1,0]], [[1,2]])
 f = fem.FEM_Model(mesh)
+with open('src/materiel.json') as json_data:
+    data_dict = json.load(json_data)
 
 
 #taux de travail
@@ -39,10 +42,6 @@ categorie_charge_exploitation = { "A" : 1.5,
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "secret"
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0    
-
-@app.route('/bolt',methods=['GET','POST'])
-def bolt():
-    return render_template('bolt.html')
 
 
 @app.route('/assemblage',methods=['GET','POST'])
@@ -77,6 +76,21 @@ def solive():
 @app.route('/panne')
 def panne():
     return render_template("panne.html")
+
+@app.route('/charge', methods=['GET','POST'])
+def charge():
+    if request.method == "POST" and request.form['button'] == "add" :
+        nom = request.form.get("nom")
+        poids = float(request.form.get("poids"))
+        prix = float(request.form.get("prix"))
+        coloris = request.form.get("coloris")
+        finition = request.form.get("finition")
+        data_dict[nom] = {"poids" : poids, "prix" : prix, "coloris" : coloris, "finition": finition}
+    elif request.method == "POST" and request.form['button'] == "save" :
+        with open('src/materiel.json', 'w') as outfile:
+            json.dump(data_dict, outfile)
+        flash('materiau ajouté')
+    return render_template("charge.html", materiel = data_dict)
 
 @app.route('/node', methods=['GET','POST'])
 def node():

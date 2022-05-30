@@ -1,0 +1,121 @@
+ {% extends 'base.html' %}
+
+{% block content %}
+
+    {% for message in get_flashed_messages() %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+
+    <h1> Calcul de charge </h1>
+    </br>
+    <p>
+        Cette page permet calculer des charges à partir de matériaux standards de charpente définis par l'utilisateur.
+    </p>
+    
+    </br>
+
+    <h2> <i class="bi bi-house-fill"></i> 1. La couverture </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+    <div class="row">
+        <div class="col-6 col-md-6">
+            <table class="table align-middle">
+              <thead class="table-dark">
+                <tr>
+                  <th scope="col"> Nom </th>
+                    {% for s in materiel["Tuile mecanique"].keys() %}
+                  <th scope="col"> {{ s }}</td>
+                    {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+              {% for mat in materiel.keys() %}
+                <tr>
+                <th scope="row"> {{ mat }} </th>
+                  {% for s in materiel[mat].values() %}
+                  <td>{{ s }}</td>
+                  {% endfor %}
+                </tr>
+            {% endfor %}
+              </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <form method='POST'>
+    <div class="row">
+        <div class="col-2">
+            <label class="form-label"> Nom </label>
+            <input type="text" class="form-control" id="nom" name="nom" value="Tuile spe">
+        </div>
+        <div class="col-2">
+            <label class="form-label"> Poids (kN/m2) </label>
+            <input type="text" class="form-control" id="poids" name="poids" value="0.1">
+        </div>
+        <div class="col-2">
+            <label class="form-label"> Prix (€/m2) </label>
+            <input type="text" class="form-control" id="prix" name="prix" value="10">
+        </div>
+        <div class="col-2">
+            <label class="form-label"> coloris </label>
+            <input type="text" class="form-control" id="col" name="coloris" value="rouge">
+        </div>
+        <div class="col-2">
+            <label class="form-label"> finition </label>
+            <input type="text" class="form-control" id="fin" name="finition" value="PVB">
+        </div>
+    </div>
+    
+    </br>
+  
+    <div class="row">
+        <div class="col">
+            <button type="submit" class="btn btn-success" name="button" value="save"> <i class="bi bi-download"></i> Enregistrer les résultats</button>
+            <button type="submit" class="btn btn-primary" name="button" value="add"> <i class="bi bi-plus-circle"></i> Ajouter les résultats</button>
+            <button type="submit" class="btn btn-danger" name="button" value="erase"> <i class="bi bi-dash-circle"></i> Effacer les résultats </button>
+        </div>
+    </form>
+  </div>
+  
+  </br>
+
+  <h2> 2. Charpente </h2>
+  <hr class="col-6 col-md-6 mb-5" >
+    <div class="row">
+        <div class="col-2">
+            <label class="form-label"> Densité (kg/m3) </label>
+            <input type="text" class="form-control" id="nom" name="nom" value="Tuile spe">
+        </div>
+        <div class="col-2">
+            <label class="form-label"> Section Standard </label>
+            <select class="form-select" aria-label="Default select example">
+              <option selected>Section</option>
+              <option value="1">8x6</option>
+              <option value="2">10x8</option>
+              <option value="3">12x8</option>
+            </select>
+        </div>
+        <div class="col-2">
+            <label class="form-label"> Espacement </label>
+            <input type="text" class="form-control" id="poids" name="entraxe" value="0.1">
+        </div>
+    </div>
+    
+      </br>
+
+    <h2> 3. Charpente </h2>
+    <hr class="col-6 col-md-6 mb-5" >
+      <div class="row">
+          <div class="col-2">
+              <label class="form-label"> Combinaison </label>
+              <input type="text" class="form-control" id="nom" name="nom" value="Tuile spe">
+          </div>
+          <div class="col-2">
+              <label class="form-label"> Charge (kN/m2) </label>
+              <input type="text" class="form-control" id="poids" name="poids" value="0.1">
+          </div>
+      </div>
+</div>
+{% endblock %}

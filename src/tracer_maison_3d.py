@@ -11,15 +11,14 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
 
 class maison(): 
-    def __init__(self,H,h,L,l,d) : 
+    def __init__(self,ax,H,h,L,l,d) : 
         self.Hauteur = H
         self.hauteur_toiture = h
         self.Longueur = L
         self.largueur = l
         self.debord = d
         self.h_mur = self.Hauteur-self.hauteur_toiture
-        fig = plt.figure()
-        self.ax = fig.add_subplot(111, projection='3d')
+        self.ax = ax
         
     def maconnerie(self) : 
         #mur_1
@@ -78,17 +77,19 @@ class maison():
     
     def toiture_4pents(self) :
         """ plot une toiture 4 pents à partir de largeur, longueur et hauteur de la toiture.
-        """   
-        pt1 = (0,0,0)
-        pt2 = (L,0,0)
-        pt3 = (L-d,l/2,h)
-        pt4  = (0+d,l/2,h)
+        """ 
+        
+        d = 2
+        pt1 = (-self.debord, -self.debord, self.h_mur)
+        pt2 = (self.Longueur + self.debord , -self.debord, self.h_mur)
+        pt3 = (self.Longueur + self.debord - d, self.largueur/2, self.Hauteur)
+        pt4  = (-self.debord + d, self.largueur/2, self.Hauteur)
         pente_1 = [[pt1, pt2, pt3,pt4]]
         self.ax.add_collection3d(Poly3DCollection(pente_1,color='r',alpha= 0.5))
         
         pt5 = pt3
-        pt6 = (L,l,0)
-        pt7 = (0,l,0)
+        pt6 = (self.Longueur + self.debord ,self.largueur + self.debord,self.h_mur)
+        pt7 = (-self.debord,self.largueur + self.debord,self.h_mur)
         pt8  = pt4
         pente_2 = [[pt5, pt6, pt7, pt8]]
         self.ax.add_collection3d(Poly3DCollection(pente_2,color='r',alpha= 0.5))
@@ -136,9 +137,11 @@ def toiture() :
         plt.pause(.0001)
         
 if __name__ == '__main__':
-    H,h,L,l,d = 8, 2, 10, 8, 0.6
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    H,h,L,l,d = 8, 3, 10, 8, 0.6
     
-    m = maison(H,h,L,l,d)
+    m = maison(ax,H,h,L,l,d)
     m.maconnerie()
     m.toiture(type = '2_pentes')
     m.plot()

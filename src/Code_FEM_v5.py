@@ -28,6 +28,7 @@ from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
+from tracer_maison_3d import *
 
 class Arrow3D(FancyArrowPatch):
     def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -48,15 +49,13 @@ from docx.shared import Mm
 import time, datetime
 
 class Mesh : 
-    def __init__(self, dim, node_list = [], element_list = [], S_list = [], I_list = [], h = 22, b = 10, debug = False) :
+    def __init__(self, dim, node_list = [], element_list = [], debug = False) :
         self.dim = dim
         self.node_list = np.empty((0,dim))
         self.element_list = np.empty((0,2),dtype = int)
         self.name = np.empty((0,1))
         self.color = np.empty((0,1))
         self.Section = np.empty((0,2))
-        self.S_list = np.array(S_list)
-        self.I_list = np.array(I_list)
         self.debug = debug
     
     def add_node(self,node) : 
@@ -77,8 +76,12 @@ class Mesh :
         found = False
         while (found is not True) and (index+1 < len(self.node_list)) and (self.node_list.size != 0) : 
             index += 1
-            if (self.node_list[index][0] == node[0]) and (self.node_list[index][1] == node[1]) :
-                found = True
+            if self.dim == 2:
+                if (self.node_list[index][0] == node[0]) and (self.node_list[index][1] == node[1]) :
+                    found = True
+            elif self.dim == 3 :
+                if (self.node_list[index][0] == node[0]) and (self.node_list[index][1] == node[1]) and (self.node_list[index][2] == node[2]):
+                    found = True
         return found, index
         
     
@@ -114,23 +117,20 @@ class Mesh :
         return found, index
     
     def add_element(self, elem, name = "poutre", color = "k", h = "22", l = "10") : 
-        if len(elem) != self.dim : 
-            print("Erreur : format de l'element incorrect")
+        found, index = self.check_elem(elem)
+        if found == False : 
+            self.element_list = np.append(self.element_list,np.array([elem]), axis=0)
+            self.name = np.append(self.name, np.array(name))
+            self.color = np.append(self.color, np.array(color))
+            self.Section = np.append(self.Section, np.array([[h, l]]), axis = 0)
+            print("element ajouté")
         else :
-            found, index = self.check_elem(elem)
-            if found == False : 
-                self.element_list = np.append(self.element_list,np.array([elem]), axis=0)
-                self.name = np.append(self.name, np.array(name))
-                self.color = np.append(self.color, np.array(color))
-                self.Section = np.append(self.Section, np.array([[h, l]]), axis = 0)
-                print("element ajouté")
-            else :
-                print("element deja dans le maillage")
-            if self.debug == True : 
-                print(self.element_list)
-                print(self.name)
-                print(self.color)
-                print(self.Section)
+            print("element deja dans le maillage")
+        if self.debug == True : 
+            print(self.element_list)
+            print(self.name)
+            print(self.color)
+            print(self.Section)
     
     def del_element(self, element) : 
         if len(element) != self.dim : 
@@ -223,7 +223,7 @@ class Mesh :
         x = [x for x in self.node_list[:,0]]
         y = [y for y in self.node_list[:,1]]
         z = [z for z in self.node_list[:,2]]
-        ax.scatter(x, y, z, c='y', s=200, zorder=1)
+        ax.scatter(x, y, z, c='y', s=100, zorder=1)
         for i, location in enumerate(zip(x,y)):
             ax.text(x[i],y[i],z[i],str(i+1),size=20,zorder=2,color = "k")
         for i in range(len(self.element_list)) :
@@ -236,6 +236,8 @@ class Mesh :
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
+        ax.legend()
+        ax.view_init(elev=20., azim=-20.)
         ax.set_box_aspect([1,1,1])
         if pic : 
             plt.savefig(path + 'geom.png', format='png', dpi=200)
@@ -245,11 +247,17 @@ class FEM_Model() :
     def __init__(self, mesh, E = 10.0E9) :
         self.mesh = mesh
         self.E = E
-        self.load = np.zeros([len(self.mesh.node_list),3])
+        if self.mesh.dim == 2:
+            self.load = np.zeros([len(self.mesh.node_list),3])
+            self.bc = np.eye(len(self.mesh.node_list)*3)
+            self.U = np.zeros(len(self.mesh.node_list)*3)
+            self.React = np.zeros(len(self.mesh.node_list)*3)
+        elif self.mesh.dim == 3:
+            self.load = np.zeros([len(self.mesh.node_list),6])
+            self.bc = np.eye(len(self.mesh.node_list)*6)
+            self.U = np.zeros(len(self.mesh.node_list)*6)
+            self.React = np.zeros(len(self.mesh.node_list)*6)
         self.dist_load = np.array([[1,2,0]])
-        self.bc = np.eye(len(self.mesh.node_list)*3)
-        self.U = np.zeros(len(self.mesh.node_list)*3)
-        self.React = np.zeros(len(self.mesh.node_list)*3)
         self.lbc = []
     
     def test(self) :
@@ -268,31 +276,42 @@ class FEM_Model() :
             
     def apply_distributed_load(self,q,element):
         L = self.get_length(element)
-        Q = np.array([0,
-                      -q*L/2,
-                      -q*L**2/12,
-                      0,
-                      -q*L/2,
-                      q*L**2/12])
-        self.load[element[0]-1] = self.load[element[0]-1] + Q [:3]        
-        self.load[element[1]-1] = self.load[element[1]-1] + Q [3:6]
-        self.dist_load = np.append(self.dist_load, [[ element[0], 
-                                                    element[1],
-                                                    q ]], axis=0)
+        if self.mesh.dim == 2:
+            Q = np.array([0,
+                          -q*L/2,
+                          -q*L**2/12,
+                          0,
+                          -q*L/2,
+                          q*L**2/12])
+            self.load[element[0]-1] = self.load[element[0]-1] + Q [:3]        
+            self.load[element[1]-1] = self.load[element[1]-1] + Q [3:6]
+        elif self.mesh.dim == 3:
+             Q = np.array([0, -q * L / 2, -q * L ** 2 / 12, 0, 0, 0,
+                           0, -q * L / 2, q * L ** 2 / 12, 0, 0, 0])
+             self.load[element[0]-1] = self.load[element[0]-1] + Q [:6]        
+             self.load[element[1]-1] = self.load[element[1]-1] + Q [6:12]
+        self.dist_load = np.append(self.dist_load, [[ element[0], element[1], q ]], axis=0)
         #print(self.dist_load)
     
     def apply_bc(self,node_bc,node):
-        if len(node_bc) != 3 : 
-            print("Error : uncorrect bc format (must be 3 elements Fx, Fy and Mz)")
-        elif node > len(self.mesh.node_list) :
+        if node > len(self.mesh.node_list) :
             print("Error : node specified not in the mesh")
-        else :
+        elif len(node_bc) == 3 :
             for i in range(len(node_bc)) : 
                 if node_bc[i] == 1 : 
                     self.lbc.append(i+3*(node-1))
             print("boundary condition applied")
+        elif len(node_bc) == 6 :
+            for i in range(len(node_bc)) : 
+                if node_bc[i] == 1 : 
+                    self.lbc.append(i+6*(node-1))
+            print("boundary condition applied")
+        else : 
+            print("Error : uncorrect bc format")
     
     def Rot(self,c,s) : 
+        """ Rotation matrix in 2D
+        """
         Rotation_matrix =  np.array([[c, -s , 0, 0 , 0, 0],
                                      [s, c, 0, 0 , 0, 0],
                                      [0, 0, 1, 0, 0 , 0],
@@ -301,12 +320,33 @@ class FEM_Model() :
                                      [0, 0, 0, 0, 0 , 1]])
         return Rotation_matrix
     
+    def Rot_3D(self, vec2):
+        """ Find the rotation matrix that aligns vec1 to vec2
+        :param vec1: A 3d "source" vector
+        :param vec2: A 3d "destination" vector
+        :return mat: A transform matrix (3x3) which when applied to vec1, aligns it with vec2.
+        """
+        RR = np.identity(12)
+        vec1 = [1,0,0]
+        a, b = (vec1 / np.linalg.norm(vec1)).reshape(3), (vec2 / np.linalg.norm(vec2)).reshape(3)
+        v = np.cross(a, b)
+        c = np.dot(a, b)
+        s = np.linalg.norm(v)
+        kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+        rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
+        
+        RR[0:3,0:3] = rotation_matrix
+        RR[3:6,3:6] = rotation_matrix
+        RR[6:9,6:9] = rotation_matrix
+        RR[9:12,9:12] = rotation_matrix
+        return RR
+    
     def mini_rot(self,c,s) : 
         R = np.array([[c, s],
                       [-s, c]])
         return R
     
-    def K_elem(self,L_e, h, b) :
+    def K_elem(self, L_e, h, b) :
         S = h*b*1e-4
         I = b*h**3/12*1e-8
         K_elem = self.E/L_e*np.array([[S, 0, 0 , -S, 0, 0],
@@ -330,19 +370,13 @@ class FEM_Model() :
         print(self.sig)
         
     
-    def K_elem_3d(self, L : float , E : float , S : float , Iy : float , Iz : float , G : float , J : float , ay : float = 0, az : float = 0) -> np.array :
+    def K_elem_3d(self, L : float , h : float, b : float, E : float = 1, G : float = 1, J : float = 1 , ay : float = 0, az : float = 0) -> np.array :
         """ Calcul de la matrice de raideur avec prise en compte de l'énergie cisaillement avec les termes ay et az.
     
         :param L: longueur de l'element
         :type L: float
         :param E: Module d'Young
         :type E: float
-        :param S: Section
-        :type S: float
-        :param Iy: Inertie
-        :type Iy: float
-        :param Iz: Inertie
-        :type Iz: float
         :param G: Module de coulomb
         :type G: float
         :param J: Module de torsion
@@ -354,6 +388,9 @@ class FEM_Model() :
         :return: matrice de raideur en 3D
         :rtype: np.array
         """
+        S = h*b
+        Iy = b*h**3/12
+        Iz = h*b**3/12
         Ktc = E * S / L
         KT = G * J / L
         Kf1 = 12 * E * Iz / (L ** 3 * (1 + az))
@@ -366,14 +403,14 @@ class FEM_Model() :
                            [0, Kf1, 0, 0, 0, Kf4, 0, -Kf1, 0, 0, 0, Kf4],
                            [0, 0, Kf2, 0, Kf3, 0, 0, 0, 0, 0, 0, 0],
                            [0, 0, 0, KT, 0, 0, 0, 0, 0, 0, 0, 0],
-                           [0, 0, 0, 0, Kf5, 0, 0, 0, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 0, Kf6, 0, 0, 0, 0, 0, 0],
-                           [-Ktc, 0, 0, 0, 0, 0, Ktc, 0, 0, 0, 0, 0, 0], #7
+                           [0, 0, Kf3, 0, Kf5, 0, 0, 0, 0, 0, 0, 0],
+                           [0, Kf4, 0, 0, 0, Kf6, 0, 0, 0, 0, 0, 0],
+                           [-Ktc, 0, 0, 0, 0, 0, Ktc, 0, 0, 0, 0, 0], #7
                            [0, 0, 0, 0, 0, 0, 0, Kf1, 0, 0, 0, 0],
                            [0, 0, 0, 0, 0, 0, 0, 0, Kf2, 0, 0, 0],
                            [0, 0, 0, 0, 0, 0, 0, 0, 0, KT, 0, 0],
                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Kf5, 0],
-                           [0, Kf4, 0, 0, 0, 0, 0, 0, 0, 0, 0, Kf6]])
+                           [0, Kf4, 0, 0, 0, 0, 0, 0, 0, 0, 0, Kf6]], dtype='float')
         return K_elem
         
     def changement_base(self,P,M) : 
@@ -395,14 +432,46 @@ class FEM_Model() :
             BB.append(B)
         return BB
     
+    def changement_coord_3D(self) :
+        BB = []
+        for i in range(len(self.mesh.element_list)) : # Une matrice de changement de coord par element
+            #print("generation de la matrice de passage de l'element ", i + 1, ":")
+            B = np.zeros([len(self.mesh.node_list)*6,12])
+            noeud1 = self.mesh.element_list[i,0]
+            noeud2 = self.mesh.element_list[i,1]
+            B[(noeud1 - 1)*6, 0] = 1
+            B[(noeud1 - 1)*6 + 1 , 1] = 1
+            B[(noeud1 - 1)*6 + 2, 2] = 1
+            B[(noeud1 - 1)*6 + 3, 3] = 1
+            B[(noeud1 - 1)*6 + 4, 4] = 1
+            B[(noeud1 - 1)*6 + 5, 5] = 1
+            ###
+            B[(noeud2 - 1)*6, 0] = 1
+            B[(noeud2 - 1)*6 + 1 , 1] = 1
+            B[(noeud2 - 1)*6 + 2, 2] = 1
+            B[(noeud2 - 1)*6 + 3, 3] = 1
+            B[(noeud2 - 1)*6 + 4, 4] = 1
+            B[(noeud2 - 1)*6 + 5, 5] = 1
+            BB.append(B)
+        return BB
+    
     def get_length(self,element) : 
         noeud1 = element[0]
         noeud2 = element[1]
-        x_1 = self.mesh.node_list[noeud1-1,0]
-        x_2 = self.mesh.node_list[noeud2-1,0]
-        y_1 = self.mesh.node_list[noeud1-1,1]
-        y_2 = self.mesh.node_list[noeud2-1,1]
-        L_e = np.sqrt((x_2-x_1)**2 + (y_2-y_1)**2)
+        if self.mesh.dim == 2:
+            x_1 = self.mesh.node_list[noeud1-1,0]
+            x_2 = self.mesh.node_list[noeud2-1,0]
+            y_1 = self.mesh.node_list[noeud1-1,1]
+            y_2 = self.mesh.node_list[noeud2-1,1]
+            L_e = np.sqrt((x_2-x_1)**2 + (y_2-y_1)**2)
+        elif self.mesh.dim == 3:
+            x_1 = self.mesh.node_list[noeud1 - 1, 0]
+            x_2 = self.mesh.node_list[noeud2 - 1, 0]
+            y_1 = self.mesh.node_list[noeud1 - 1, 1]
+            y_2 = self.mesh.node_list[noeud2 - 1, 1]
+            z_1 = self.mesh.node_list[noeud1 - 1, 2]
+            z_2 = self.mesh.node_list[noeud2 - 1, 2]
+            L_e = np.sqrt((x_2 - x_1) ** 2 + (y_2 - y_1) ** 2 + (z_2 - z_1) ** 2)
         return L_e
     
     def get_angle(self,element) : 
@@ -414,13 +483,24 @@ class FEM_Model() :
         """
         noeud1 = element[0]
         noeud2 = element[1]
-        x_1 = self.mesh.node_list[noeud1-1,0]
-        x_2 = self.mesh.node_list[noeud2-1,0]
-        y_1 = self.mesh.node_list[noeud1-1,1]
-        y_2 = self.mesh.node_list[noeud2-1,1]
-        L_e = np.sqrt((x_2-x_1)**2 + (y_2-y_1)**2)
-        c = (x_2-x_1)/L_e
-        s = (y_2-y_1)/L_e
+        if self.mesh.dim == 2:
+            x_1 = self.mesh.node_list[noeud1-1,0]
+            x_2 = self.mesh.node_list[noeud2-1,0]
+            y_1 = self.mesh.node_list[noeud1-1,1]
+            y_2 = self.mesh.node_list[noeud2-1,1]
+            L_e = np.sqrt((x_2-x_1)**2 + (y_2-y_1)**2)
+            c = (x_2-x_1)/L_e
+            s = (y_2-y_1)/L_e
+        elif self.mesh.dim == 3:
+            x_1 = self.mesh.node_list[noeud1-1,0]
+            x_2 = self.mesh.node_list[noeud2-1,0]
+            y_1 = self.mesh.node_list[noeud1-1,1]
+            y_2 = self.mesh.node_list[noeud2-1,1]
+            z_1 = self.mesh.node_list[noeud1 - 1, 2]
+            z_2 = self.mesh.node_list[noeud2 - 1, 2]
+            L_e = np.sqrt((x_2 - x_1) ** 2 + (y_2 - y_1) ** 2 + (z_2 - z_1) ** 2)
+            c = (x_2-x_1)/L_e
+            s = (y_2-y_1)/L_e
         return c,s
     
     def get_bc(self) : 
@@ -464,10 +544,44 @@ class FEM_Model() :
                 print(self.K_elem(L_e, h, b))
                 print(K_rot)
         return M_global
+    
+    def assemblage_3D(self) :
+        """ Return the global stiffness matrix of the mesh
+        
+        :return: matrix of size(dll*3*nb_node,dll*3*nb_node)
+        :rtype: np.array
+
+        """
+        BB = self.changement_coord_3D()
+        NL = self.mesh.node_list
+        EL = self.mesh.element_list
+        M_global = np.zeros([len(NL)*6,len(NL)*6])
+        for i in range(len(EL)) :
+            element = EL[i]
+            L_e = self.get_length(element)
+            print(element)
+            rot = self.Rot_3D(NL[element[1]-1])
+            h, b = self.mesh.Section[i,0], self.mesh.Section[i,1]
+            print(rot,self.K_elem_3d(L_e, h , b))
+
+            # rotation matrice elem
+            K_rot = rot.dot(self.K_elem_3d(L_e, h , b)).dot(np.transpose(rot))
+            M_global = M_global + self.changement_base(BB[i],K_rot)
+            if self.mesh.debug == True : 
+                print("element " + str(i+1) + " :")
+                print(BB[i])
+                print(rot)
+                print("matrice elementaire : ")
+                print(self.K_elem_3d(L_e, h, b))
+                print(K_rot)
+        return M_global
 
     def solver_frame(self) :
         self.bc = np.delete(self.bc,self.lbc,axis=1)
-        K_glob = self.assemblage_2D()
+        if self.mesh.dim == 2 : 
+            K_glob = self.assemblage_2D()
+        elif self.mesh.dim == 3 : 
+            K_glob = self.assemblage_3D()
         K_glob_r = np.transpose(self.bc).dot(K_glob).dot(self.bc)
         ### en cas de matrice singuliaire 
         m = 0
@@ -526,22 +640,19 @@ class FEM_Model() :
         ax.add_patch(Polygon(xy=list(zip(x, y)), fill=True, color='red', alpha=0.1, lw=0))
         return
     
-    def charge_3D(self, pt1, pt2, q):
+    def charge_3D(self, ax, pt1, pt2, q):
         x1, x2 = pt1[0], pt2[0]
         y1, y2 = pt1[1], pt2[1]
         z1, z2 = pt1[2], pt2[2]
         dx, dy, dz = x2 - x1, y2 - y1, z2 - z1
         L = np.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
         #a = np.arctan(dy / dx)
-        nb_pt = 5
+        nb_pt = 10
         amplitude = 1
         x = np.linspace(x1, x2, nb_pt)
         y = np.linspace(y1, y2, nb_pt)
         z = np.linspace(z1, z2, nb_pt)
-    
-        fig = plt.figure(figsize=(8,6))
-        ax = fig.add_subplot(111, projection='3d')
-    
+
         for i in range(0, nb_pt):
             a = Arrow3D([x[i], x[i]], 
                         [y[i], y[i]], 
@@ -549,19 +660,10 @@ class FEM_Model() :
                         mutation_scale=10, 
                         lw=2, arrowstyle="-|>", color="r")
             ax.add_artist(a)
-        line, = ax.plot([x1, x2 ], [y1, y2], [z1 + amplitude, z2 + amplitude], color='r', lw=1, linestyle='--')
-        line.set_label('undeformed')
+        line, = ax.plot([x1, x2 ], [y1, y2], [z1 + amplitude, z2 + amplitude], color='r', lw=1)
         ax.text(x1 + dx/2, y1 + dy/2, z1 + dz/2,
                 "q = " + str(q) + " kN/m",
                 size=20, zorder=2, color="k")
-        max_range = np.array([x.max()-x.min(), y.max()-y.min(), z.max()-z.min()]).max() / 2.0 + amplitude
-        mid_x = (x.max()+x.min()) * 0.5
-        mid_y = (y.max()+y.min()) * 0.5
-        mid_z = (z.max()+z.min()) * 0.5
-        ax.set_xlim(mid_x - max_range, mid_x + max_range)
-        ax.set_ylim(mid_y - max_range, mid_y + max_range)
-        ax.set_zlim(mid_z - max_range, mid_z + max_range)
-        plt.show()
         return
     
     def plot_forces(self, type = 'nodal', pic = False, path = "./") :
@@ -596,6 +698,59 @@ class FEM_Model() :
         if pic : 
             plt.savefig(path + 'load.png', format='png', dpi=200)
         return
+    
+    def plot_forces3D(self, type='dist', pic=False, path="./"):
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d')
+        # plt.gca(projection='3d')
+        F = self.load
+        NL = self.mesh.node_list
+        scale_force = np.max(np.abs(F))
+        x = [x for x in self.mesh.node_list[:, 0]]
+        y = [y for y in self.mesh.node_list[:, 1]]
+        z = [z for z in self.mesh.node_list[:, 2]]
+        ax.scatter(x, y, z, c='y', s=100, zorder=1)
+        for i, location in enumerate(zip(x, y)):
+            ax.text(x[i], y[i], z[i], str(i + 1), size=20, zorder=2, color="k")
+        for i in range(len(self.mesh.element_list)):
+            xi, xj = self.mesh.node_list[self.mesh.element_list[i, 0] - 1, 0], self.mesh.node_list[self.mesh.element_list[i, 1] - 1, 0]
+            yi, yj = self.mesh.node_list[self.mesh.element_list[i, 0] - 1, 1], self.mesh.node_list[self.mesh.element_list[i, 1] - 1, 1]
+            zi, zj = self.mesh.node_list[self.mesh.element_list[i, 0] - 1, 2], self.mesh.node_list[self.mesh.element_list[i, 1] - 1, 2]
+            line, = ax.plot([xi, xj], [yi, yj], [zi, zj], color=self.mesh.color[i], lw=1, linestyle='--')
+            line.set_label(self.mesh.name[i])
+        ### Trace les efforts
+        if type == 'nodal':
+            plt.quiver(NL[:, 0] - F[:, 0] / scale_force,
+                       NL[:, 1] - F[:, 1] / scale_force,
+                       NL[:, 2] - F[:, 2] / scale_force,
+                       F[:, 0], F[:, 1], F[:, 2], color='r',
+                       angles='xy', scale_units='xy', scale=scale_force)
+        elif type == 'dist':
+            for elem in self.dist_load[1:]:
+                pt1 = self.mesh.node_list[elem[0] - 1]
+                pt2 = self.mesh.node_list[elem[1] - 1]
+                self.charge_3D(ax, pt1, pt2, elem[2])
+        #self.charge_3D(ax, [0, 0, 2.5], [0, 6 / 2, 5], 1)
+        ax.set_title("Structure")
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_box_aspect([1, 1, 1])
+        ax.legend()
+        ax.view_init(elev=20., azim=-20.)
+        """
+        x, y , z = 0, 0, 2.5+1
+        u, v, w = 0, 0, -1
+        ax.quiver(x, y, z, u, v, w, length=1, normalize=True)
+        """
+        ax.set_xlim(-1, max(self.mesh.node_list[:,0])+1)
+        ax.set_ylim(-1, max(self.mesh.node_list[:,1])+1)
+        ax.set_zlim(0, max(self.mesh.node_list[:,2])+1)
+        plt.tight_layout()
+        plt.grid()
+        if pic:
+            plt.savefig(path + 'load.png', format='png', dpi=200)
+        return ax
     
     def interpol(self,x1,x2,y1,y2,y3,y4,r) : 
         x3 = x1
@@ -769,18 +924,33 @@ class FEM_Model() :
         return print("Rapport genéré avec succès")
 
 def test_3d() :
-    m1 = Mesh(3,[[0,0,0]],[[1,2]])
-    m1.add_node([1,0,0])
-    m1.add_node([1,1,0])
-    m1.add_node([1,1,1])
-    m1.add_element([2,3])
-    m1.add_element([3,4])
-    m1.add_element([4,1])
-    print(m1)
-    m1.geom()
+    m1 = Mesh(dim = 3)
+    p = 6.5
+    h = 2
+    h_mur = 2.5
+    L = 6
+    m1.add_node([0, 0, 0])
+    m1.add_node([0, 0, h_mur])
+    m1.add_node([0, p/2, h_mur + h])
+    m1.add_node([0, p, h_mur])
+    m1.add_node([0, p, 0])
+    m1.add_node([L, p/2, h_mur + h])
+    m1.add_element([1, 2], "poteau", "k", 15, 15)
+    m1.add_element([2, 3], "arba", "r", 22, 12)
+    m1.add_element([3, 4], "arba", "r", 22, 12)
+    m1.add_element([4, 2], "entrait", "b", 22, 10)
+    m1.add_element([4, 5], "poteau", "k", 15, 15)
+    m1.add_element([3, 6], "panne faitiere", 'g', 22, 12)
+    #m1.geom()
     m1.node_table()
+    #plt.show()
     f = FEM_Model(m1)
-    f.charge_3D([0,0,0],[1,1,1],5)
+    f.apply_distributed_load(1, [2, 3])
+    f.plot_forces3D(type='dist')
+    f.apply_bc([1,1,1,1,1,1],1)
+    f.apply_bc([1,1,1,1,1,1],6)
+    f.solver_frame()
+    plt.show()
     return
 
 def validation_2d() : 
@@ -895,7 +1065,7 @@ def test_cantilever() :
     return 
 
 if __name__ == "__main__" :
-    test_2d()
+    test_3d()
     
 '''
 TODO : 

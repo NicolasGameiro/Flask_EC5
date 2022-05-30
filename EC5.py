@@ -14,12 +14,16 @@ from prettytable import PrettyTable as pt
 
 def calcul_solive(h : float, l : float, e : float, p : float, q_elu : float, q_els : float) :
     I = l*h**3/12 #Inertie de la poutre (en m4)
-    E = 11000e3 #Module d'Young du bois (en Pa)
+    E = 11500e3 #Module d'Young du bois (en Pa)
     S = h*l #Section de la poutre (m2)
+    print('Inertie I = ', I, 'm4')
+    print('Section S = ', S, 'm2')
     M = q_elu*1000*p**2/8 #Moment autour de l'axe fort
     T = q_elu*p*1000
+    print('Moment de flexion Mf =', M, 'N.m')
+    print('Effort tranchant T =', T, 'N')
     #ELS
-    f = np.round(5*p**4/384/E/I*100,2) # pas de prise en compte des efforts tranchants (en cm)
+    f = np.round(5*q_els*p**4/384/E/I*100,2) # pas de prise en compte des efforts tranchants (en cm)
     #ELU
     stc = np.round(q_elu/1e6/l,2) #MPa
     sf = np.round(M/I*h/2/1e6,2) #MPa
@@ -65,7 +69,7 @@ def calcul_panne(h : float, l : float, e : float, p : float, q_elu : float, q_el
     Mz = qy*1000*p**2/8 #Moment autour de l'axe faible
     T = q_elu*p*1000
     #ELS
-    f = np.round(5*p**4/384/E/Wz/h*2*100,2) # pas de prise en compte des efforts tranchants (en cm)
+    f = np.round(5*q_els*p**4/384/E/Wz/h*2*100,2) # pas de prise en compte des efforts tranchants (en cm)
     #ELU
     stc = np.round(q_elu/1e6/l,2) #MPa
     sf = np.round((Mz/Wz + My/Wy)/1e6,2) #MPa
@@ -120,12 +124,22 @@ classe_de_service = {"classe 1" : 0.8 ,
 bois = {'BM' : 1.3,
         'LC' : 1.25}
 
-classe_qualite = {"C24" : { "fm,k" : 24,
+classe_qualite = {"C27" : { "fm,k" : 27,
+                            "ft,0,k" : 16,
+                            "ft,90,k" : 0.4,
+                            "fc,0,k" : 22,
+                            "fc,90,k" : 2.6,
+                            "fv,k" : 4,
+                            "E0,m" : 11500,
+                            "Gm" : 720,
+                            "rho_m" : 420 #kg/m3
+                           },
+                  "C24" : { "fm,k" : 24,
                             "ft,0,k" : 14,
                             "ft,90,k" : 0.4,
                             "fc,0,k" : 21,
                             "fc,90,k" : 2.5,
-                            "fv,k" : 2.5,
+                            "fv,k" : 4,
                             "E0,m" : 11000,
                             "Gm" : 690,
                             "rho_m" : 420 #kg/m3
@@ -143,17 +157,21 @@ classe_qualite = {"C24" : { "fm,k" : 24,
                   }
 
 # Categorie charge d'exploitation (en kN/m2)
-categorie_charge_exploitation = { "A" : 1.5,
+categorie_charge_exploitation = {"A" : 1.5,
                                  "B" : 2.5,
                                  "C" : 2.5,
                                  "D" : 5,
                                  "E" : 7.5}
 
+def charge_element(rho : float, hauteur : float, largeur : float, espacement : float) -> float : 
+    charge_lin = rho * hauteur * largeur / espacement
+    return charge_lin #en kg/m2
+
 def charge(bande : float, pp : float,G : float ,Q : float ,W : float =0 ,S :float =0) -> float: 
     """
 
     Parameters
-    ----------
+    ---------- 
     bande : float
         bande de chargement (m).
     pp : float
@@ -179,19 +197,18 @@ def charge(bande : float, pp : float,G : float ,Q : float ,W : float =0 ,S :floa
 
 def main():
     k_mod = classe_de_service['classe 1']
-    gamma_m = bois['BM']
-    fm = classe_qualite["C24"]["fm,k"]
-    rho = classe_qualite["C24"]["rho_m"]
-    h = 0.22
-    l = 0.1
-    p = 4
-    bande = 0.5 
+    fm = classe_qualite["C27"]["fm,k"]
+    rho = classe_qualite["C27"]["rho_m"]
+    h = 0.21 #m
+    l = 0.07 #m
+    p = 4 #m
+    bande = 0.6 #m
     pp = rho*h*l/100 #kN/m
-    G = 0.4
-    Q = 1
-    q_elu, q_els = charge(bande,pp,G,Q)
+    G = 0.908 #kN/m
+    Q = 1.5 #kN/m
+    q_elu, q_els = 1.625, 1.625 #charge(bande,pp,G,Q)
     stc, sf, sv, f = calcul_solive(h, l, bande, p, q_elu, q_els)
-    t1,t2,t3 = calcul_taux_trav(stc,sf,sv,'BM','classe 1','C24')
+    t1,t2,t3 = calcul_taux_trav(stc,sf,sv,'classe 1','C24')
     print("-----")
     print("taux de travail : ")
     print("traction/compression = ", t1, "%")
@@ -210,12 +227,4 @@ def main():
     
 
 if __name__ == "__main__" :
-    h = 0.22
-    b = 0.08
-    q_p = 400
-    L = 4
-    q_neige = 144
-    q_vent = 0
-    pente = 57.74
-    stc, sf, sv = calcul_arba(h, b, q_p, L, q_neige, q_vent, pente )
-    print(stc, sf , sv)
+    main()
