@@ -264,15 +264,15 @@ class FEM_Model() :
         self.mesh.geom()
         
     def apply_load(self,node_load,node):
-        if len(node_load) != 3 : 
-            print("Error : uncorrect load format (must be 3 elements Fx, Fy and Mz)")
-        elif node > len(self.mesh.node_list) :
+        if node > len(self.mesh.node_list) :
             print("Error : node specified not in the mesh")
-        else :
+        elif (len(node_load) == 3) or (len(node_load) == 6):
             self.load[node-1,:] = node_load
             print("nodal load applied")
             if self.mesh.debug == True :
                 print(self.load)
+        else:
+            print("Error : uncorrect load format")
             
     def apply_distributed_load(self,q,element):
         L = self.get_length(element)
@@ -286,8 +286,8 @@ class FEM_Model() :
             self.load[element[0]-1] = self.load[element[0]-1] + Q [:3]        
             self.load[element[1]-1] = self.load[element[1]-1] + Q [3:6]
         elif self.mesh.dim == 3:
-             Q = np.array([0, -q * L / 2, -q * L ** 2 / 12, 0, 0, 0,
-                           0, -q * L / 2, q * L ** 2 / 12, 0, 0, 0])
+             Q = np.array([0, 0, -q * L / 2, -q * L ** 2 / 12, 0, 0,
+                           0, 0, -q * L / 2, q * L ** 2 / 12, 0, 0])
              self.load[element[0]-1] = self.load[element[0]-1] + Q [:6]        
              self.load[element[1]-1] = self.load[element[1]-1] + Q [6:12]
         self.dist_load = np.append(self.dist_load, [[ element[0], element[1], q ]], axis=0)
@@ -370,48 +370,52 @@ class FEM_Model() :
         print(self.sig)
         
     
-    def K_elem_3d(self, L : float , h : float, b : float, E : float = 1, G : float = 1, J : float = 1 , ay : float = 0, az : float = 0) -> np.array :
-        """ Calcul de la matrice de raideur avec prise en compte de l'énergie cisaillement avec les termes ay et az.
-    
-        :param L: longueur de l'element
-        :type L: float
-        :param E: Module d'Young
-        :type E: float
-        :param G: Module de coulomb
-        :type G: float
-        :param J: Module de torsion
-        :type J: float
-        :param ay:
-        :type ay:
-        :param az:
-        :type az:
-        :return: matrice de raideur en 3D
-        :rtype: np.array
-        """
-        S = h*b
-        Iy = b*h**3/12
-        Iz = h*b**3/12
-        Ktc = E * S / L
-        KT = G * J / L
-        Kf1 = 12 * E * Iz / (L ** 3 * (1 + az))
-        Kf2 = 12 * E * Iy / (L ** 3 * (1 + ay))
-        Kf3 = -6 * E * Iy / (L ** 2 * (1 + ay))
-        Kf4 = 6 * E * Iz / (L ** 2 * (1 + az))
-        Kf5 = (4 + ay) * E * Iy / (L * (1 + ay))
-        Kf6 = (4 + az) * E * Iz / (L * (1 + az))
-        K_elem = np.array([[Ktc, 0, 0, 0, 0, 0, -Ktc, 0, 0, 0, 0, 0], #1
-                           [0, Kf1, 0, 0, 0, Kf4, 0, -Kf1, 0, 0, 0, Kf4],
-                           [0, 0, Kf2, 0, Kf3, 0, 0, 0, 0, 0, 0, 0],
-                           [0, 0, 0, KT, 0, 0, 0, 0, 0, 0, 0, 0],
-                           [0, 0, Kf3, 0, Kf5, 0, 0, 0, 0, 0, 0, 0],
-                           [0, Kf4, 0, 0, 0, Kf6, 0, 0, 0, 0, 0, 0],
-                           [-Ktc, 0, 0, 0, 0, 0, Ktc, 0, 0, 0, 0, 0], #7
-                           [0, 0, 0, 0, 0, 0, 0, Kf1, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 0, 0, 0, 0, Kf2, 0, 0, 0],
-                           [0, 0, 0, 0, 0, 0, 0, 0, 0, KT, 0, 0],
-                           [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Kf5, 0],
-                           [0, Kf4, 0, 0, 0, 0, 0, 0, 0, 0, 0, Kf6]], dtype='float')
-        return K_elem
+    def K_elem_3d(self, L: float, h: float, b: float, E: float = 1, nu: float = 0.3, ay: float = 0, az: float = 0) -> np.array:
+         """ Calcul de la matrice de raideur avec prise en compte de l'énergie cisaillement avec les termes ay et az.
+        
+         :param L: longueur de l'element
+         :type L: float
+         :param E: Module d'Young
+         :type E: float
+         :param G: Module de coulomb
+         :type G: float
+         :param J: Module de torsion
+         :type J: float
+         :param ay:
+         :type ay:
+         :param az:
+         :type az:
+         :return: matrice de raideur en 3D
+         :rtype: np.array
+         """
+         G = 1 #E/2/(1+nu)
+         S = 1 #h * b
+         Iy = 1 #b * h ** 3 / 12
+         Iz = 1 #h * b ** 3 / 12
+         J = 1 #Iy + Iz
+         Ktc = E * S / L
+         KT = G * J / L
+         Kf1 = 12 * E * Iz / (L ** 3 * (1 + az))
+         Kf2 = 12 * E * Iy / (L ** 3 * (1 + ay))
+         Kf3 = -6 * E * Iy / (L ** 2 * (1 + ay))
+         Kf4 = 6 * E * Iz / (L ** 2 * (1 + az))
+         Kf5 = (4 + ay) * E * Iy / (L * (1 + ay))
+         Kf6 = (4 + az) * E * Iz / (L * (1 + az))
+         Kf7 = (2 - ay) * E * Iy / (L * (1 + ay))
+         Kf8 = (2 - az) * E * Iz / (L * (1 + az))
+         K_elem = np.array([[  Ktc,    0,    0,   0,    0,    0, -Ktc,    0,    0,   0,    0,    0], # 1
+                             [   0,  Kf1,    0,   0,    0,  Kf4,    0, -Kf1,    0,   0,    0,  Kf4],
+                             [   0,    0,  Kf2,   0,  Kf3,    0,    0,    0, -Kf2,   0,  Kf3,    0],
+                             [   0,    0,    0,  KT,    0,    0,    0,    0,    0, -KT,    0,    0],
+                             [   0,    0,  Kf3,   0,  Kf5,    0,    0,    0, -Kf3,   0,  Kf7,    0],
+                             [   0,  Kf4,    0,   0,    0,  Kf6,    0, -Kf4,    0,   0,    0,  Kf8],
+                             [-Ktc,    0,    0,   0,    0,    0,  Ktc,    0,    0,   0,    0,    0], # 7
+                             [   0, -Kf1,    0,   0,    0, -Kf4,    0,  Kf1,    0,   0,    0, -Kf4],
+                             [   0,    0, -Kf2,   0, -Kf3,    0,    0,    0,  Kf2,   0, -Kf3,    0],
+                             [   0,    0,    0, -KT,    0,    0,    0,    0,    0,  KT,    0,    0],
+                             [   0,    0,  Kf3,    0, Kf7,    0,    0,    0, -Kf3,   0,  Kf5,    0],
+                             [   0,  Kf4,    0,    0,   0,  Kf8,    0, -Kf4,    0,   0,    0, Kf6]], dtype='float')
+         return K_elem
         
     def changement_base(self,P,M) : 
         return P.dot(M).dot(np.transpose(P))
@@ -720,11 +724,9 @@ class FEM_Model() :
             line.set_label(self.mesh.name[i])
         ### Trace les efforts
         if type == 'nodal':
-            plt.quiver(NL[:, 0] - F[:, 0] / scale_force,
-                       NL[:, 1] - F[:, 1] / scale_force,
-                       NL[:, 2] - F[:, 2] / scale_force,
-                       F[:, 0], F[:, 1], F[:, 2], color='r',
-                       angles='xy', scale_units='xy', scale=scale_force)
+            f_length = np.sqrt(F[:, 0]**2 + F[:, 1]**2 + F[:, 2]**2)/scale_force
+            plt.quiver(NL[:, 0] - F[:, 0] / scale_force, NL[:, 1] - F[:, 1] / scale_force, NL[:, 2] - F[:, 2] / scale_force,
+                       F[:, 0] / scale_force, F[:, 1] / scale_force, F[:, 2] / scale_force, color='r', pivot = "tail", length=max(f_length), normalize = True)
         elif type == 'dist':
             for elem in self.dist_load[1:]:
                 pt1 = self.mesh.node_list[elem[0] - 1]
@@ -848,6 +850,105 @@ class FEM_Model() :
         if pic : 
             plt.savefig(path + 'res_' + dir + '.png', format='png', dpi=200)
         return
+    
+    def plot_axis(self,elem):
+         print(elem)
+         NL = self.mesh.node_list
+         node_i = NL[elem[0]-1]
+         node_j = NL[elem[1]-1]
+         dx, dy, dz = node_j[0] - node_i[0], node_j[1] - node_i[1], node_j[2] - node_i[2]
+         vx = [dx,dy,dz] #vecteur directeur de l'element
+         RR = self.Rot_3D(vx)
+         rr = RR[0:3, 0:3]
+         print(rr)
+         if True in np.isnan(rr) :
+             vy = [0, 1, 0]
+             vz = [0, 0, 1]
+         else :
+             vy = rr * [0,1,0]
+             vz = rr * [0,0,1]
+        
+         plt.quiver(node_i[0], node_i[1], node_i[2], vx[0], vx[1], vx[2], color='r', length=0.1, normalize=True)
+         plt.quiver(node_i[0], node_i[1], node_i[2], vy[0], vy[1], vy[2], color='g', length=0.1, normalize=True)
+         plt.quiver(node_i[0], node_i[1], node_i[2], vz[0], vz[1], vz[2], color='b', length=0.1, normalize=True)
+         
+    def plot_disp_f_3D(self, scale=1e8, r=100, dir='x', pic=False, path="./"):
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d')
+        NL = self.mesh.node_list
+        EL = self.mesh.element_list
+        U = self.U
+        x_scatter = []
+        y_scatter = []
+        z_scatter = []
+        color = []
+        for i in range(len(EL)):
+            xi, xj = NL[EL[i, 0] - 1, 0], NL[EL[i, 1] - 1, 0]
+            yi, yj = NL[EL[i, 0] - 1, 1], NL[EL[i, 1] - 1, 1]
+            zi, zj = NL[EL[i, 0] - 1, 2], NL[EL[i, 1] - 1, 2]
+            line, = ax.plot([xi, xj], [yi, yj], [zi, zj], color=self.mesh.color[i], lw=1, linestyle='--')
+            line.set_label(self.mesh.name[i])
+            self.plot_axis(EL[i,:])
+        for i in range(len(EL)):
+            if dir == 'y':
+                x_scatter.append(np.linspace(NL[EL[i, 0] - 1, 0], NL[EL[i, 1] - 1, 0], r))
+                y_scatter.append(np.linspace(NL[EL[i, 0] - 1, 1] + U[(EL[i, 0] - 1) * 6 + 1] * scale, NL[EL[i, 1] - 1, 1] + U[(EL[i, 1] - 1) * 6 + 1] * scale, r))
+                z_scatter.append(np.linspace(NL[EL[i, 0] - 1, 2], NL[EL[i, 1] - 1, 2], r))
+                color.append(np.linspace(U[(EL[i, 0] - 1) * 6 + 1], U[(EL[i, 1] - 1) * 6 + 1], r))
+            elif dir == "x":
+                x_scatter.append(np.linspace(NL[EL[i, 0] - 1, 0] + U[(EL[i, 0] - 1) * 6] * scale, NL[EL[i, 1] - 1, 0] + U[(EL[i, 1] - 1) * 6] * scale, r))
+                y_scatter.append(np.linspace(NL[EL[i, 0] - 1, 1], NL[EL[i, 1] - 1, 1], r))
+                z_scatter.append(np.linspace(NL[EL[i, 0] - 1, 2], NL[EL[i, 1] - 1, 2], r))
+                color.append(np.linspace(U[(EL[i, 0] - 1) * 6], U[(EL[i, 1] - 1) * 6], r))
+            elif dir == "z":
+                x_scatter.append(np.linspace(NL[EL[i, 0] - 1, 0], NL[EL[i, 1] - 1, 0] + U[(EL[i, 1] - 1) * 6] * scale, r))
+                y_scatter.append(np.linspace(NL[EL[i, 0] - 1, 1], NL[EL[i, 1] - 1, 1], r))
+                z_scatter.append(np.linspace(NL[EL[i, 0] - 1, 2] + U[(EL[i, 0] - 1) * 6 + 2] * scale, NL[EL[i, 1] - 1, 2] + U[(EL[i, 1] - 1) * 6 + 2], r))
+                color.append(np.linspace(U[(EL[i, 0] - 1) * 6 + 2], U[(EL[i, 1] - 1) * 6 + 2], r))
+            elif dir == "sum":
+                x_scatter.append(np.linspace(NL[EL[i, 0] - 1, 0] + U[(EL[i, 0] - 1) * 6    ] * scale, NL[EL[i, 1] - 1, 0] + U[(EL[i, 1] - 1) * 6    ] * scale, r))
+                y_scatter.append(np.linspace(NL[EL[i, 0] - 1, 1] + U[(EL[i, 0] - 1) * 6 + 1] * scale, NL[EL[i, 1] - 1, 1] + U[(EL[i, 1] - 1) * 6 + 1] * scale, r))
+                z_scatter.append(np.linspace(NL[EL[i, 0] - 1, 2] + U[(EL[i, 0] - 1) * 6 + 2] * scale, NL[EL[i, 1] - 1, 2] + U[(EL[i, 1] - 1) * 6 + 2] * scale, r))
+                color.append(np.linspace(U[(EL[i, 0] - 1) * 6] + U[(EL[i, 0] - 1) * 6 + 1] + U[(EL[i, 0] - 1) * 6 + 2],
+                                         U[(EL[i, 1] - 1) * 6] + U[(EL[i, 1] - 1) * 6 + 1] + U[(EL[i, 1] - 1) * 6 + 2], r))
+        # Permet de reverse la barre de couleur si max negatif
+        if min(U) > 0:
+            cmap = plt.get_cmap('jet')
+        elif min(U) <= 0:
+            cmap = plt.get_cmap('jet_r')
+        scat = ax.scatter3D(x_scatter, y_scatter, z_scatter, c=color, cmap=cmap, s=40, edgecolor='none')
+        #ax.colorbar(label='disp', orientation='vertical')  # ScalarMappable(norm = norm_x, cmap = cmap ))
+        plt.colorbar(scat)
+        ax.set_title("Déplacement " + dir)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        #ax.set_box_aspect([1, 1, 1])
+        self.set_equal_aspect_3D(ax)
+        plt.tight_layout()
+        plt.grid()
+        if pic:
+            plt.savefig(path + 'res_' + dir + '.png', format='png', dpi=200)
+        return
+    
+    def set_equal_aspect_3D(self,ax):
+        """
+        Set aspect ratio of plot correctly
+        Args:
+            :ax: (obj) axis object
+        """
+    
+        # See https://stackoverflow.com/a/19248731
+        # ax.set_aspect('equal') --> raises a NotImplementedError
+        # See https://github.com/matplotlib/matplotlib/issues/1077/
+    
+        extents = np.array([getattr(ax, 'get_{}lim'.format(dim))() for dim in 'xyz'])
+        sz = extents[:, 1] - extents[:, 0]
+        centers = np.mean(extents, axis=1)
+        maxsize = max(abs(sz))
+        r = maxsize/2
+        for ctr, dim in zip(centers, 'xyz'):
+            getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
         
     def __str__(self):
         return "fem solver"
@@ -865,12 +966,12 @@ class FEM_Model() :
             tab.field_names = ["Node","Ux (m)", "Uy (m)", "Uz (m)", "Phix (rad)", "Phiy (rad)", "Phiz (rad)"]
             for i in range(len(self.mesh.node_list)) : 
                 tab.add_row([int(i+1), 
-                             np.format_float_scientific(self.U[i][0], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i][1], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i][2], precision = 2, exp_digits=2), 
-                             np.format_float_scientific(self.U[i][3], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i][4], precision = 2, exp_digits=2),
-                            np.format_float_scientific(self.U[i][5], precision = 2, exp_digits=2)])
+                             np.format_float_scientific(self.U[i*6], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*6+1], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*6+2], precision = 2, exp_digits=2), 
+                             np.format_float_scientific(self.U[i*6+3], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*6+4], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*6+5], precision = 2, exp_digits=2)])
         print(tab)
         
     def R_table(self):
@@ -886,12 +987,12 @@ class FEM_Model() :
             tab.field_names = ["Node","Fx", "Fy", "Fz", "Mx", "My", "Mz"]
             for i in range(len(self.mesh.node_list)) : 
                 tab.add_row([int(i+1),
-                             np.format_float_scientific(self.React[i][0], precision = 2, exp_digits=2),
-                             np.format_float_scientific(self.React[i+1][0], precision = 2, exp_digits=2),
-                             np.format_float_scientific(self.React[i+2][0], precision = 2, exp_digits=2),
-                             np.format_float_scientific(self.React[i+3][0], precision = 2, exp_digits=2),
-                             np.format_float_scientific(self.React[i+4][0], precision = 2, exp_digits=2),
-                             np.format_float_scientific(self.React[i+5][0], precision = 2, exp_digits=2)])
+                             np.format_float_scientific(self.React[i*6][0], precision = 2, exp_digits=2),
+                             np.format_float_scientific(self.React[i*6+1][0], precision = 2, exp_digits=2),
+                             np.format_float_scientific(self.React[i*6+2][0], precision = 2, exp_digits=2),
+                             np.format_float_scientific(self.React[i*6+3][0], precision = 2, exp_digits=2),
+                             np.format_float_scientific(self.React[i*6+4][0], precision = 2, exp_digits=2),
+                             np.format_float_scientific(self.React[i*6+5][0], precision = 2, exp_digits=2)])
         print(tab)
     
     def rapport(self) : 
@@ -923,34 +1024,62 @@ class FEM_Model() :
         doc.save("Rapport_" + short_st + ".docx")
         return print("Rapport genéré avec succès")
 
-def test_3d() :
-    m1 = Mesh(dim = 3)
+def test_3d():
+    m1 = Mesh(dim=3)
     p = 6.5
     h = 2
     h_mur = 2.5
     L = 6
     m1.add_node([0, 0, 0])
     m1.add_node([0, 0, h_mur])
-    m1.add_node([0, p/2, h_mur + h])
+    m1.add_node([0, p / 2, h_mur + h])
     m1.add_node([0, p, h_mur])
     m1.add_node([0, p, 0])
-    m1.add_node([L, p/2, h_mur + h])
+    m1.add_node([L, p / 2, h_mur + h])
     m1.add_element([1, 2], "poteau", "k", 15, 15)
     m1.add_element([2, 3], "arba", "r", 22, 12)
     m1.add_element([3, 4], "arba", "r", 22, 12)
     m1.add_element([4, 2], "entrait", "b", 22, 10)
     m1.add_element([4, 5], "poteau", "k", 15, 15)
     m1.add_element([3, 6], "panne faitiere", 'g', 22, 12)
-    #m1.geom()
+    # m1.geom()
     m1.node_table()
-    #plt.show()
+    # plt.show()
     f = FEM_Model(m1)
-    f.apply_distributed_load(1, [2, 3])
-    f.plot_forces3D(type='dist')
-    f.apply_bc([1,1,1,1,1,1],1)
-    f.apply_bc([1,1,1,1,1,1],6)
+    f.apply_distributed_load(1, [3, 6])
+    f.plot_forces3D(type='nodal')
+    f.apply_bc([1, 1, 1, 0, 0, 0], 1)
+    f.apply_bc([1, 1, 1, 1, 1, 1], 5)
+    f.apply_bc([1, 1, 1, 1, 1, 1], 6)
     f.solver_frame()
+    f.plot_disp_f_3D(dir = "sum")
     plt.show()
+    f.U_table()
+    f.R_table()
+    return
+
+
+def validation_3d():
+    m1 = Mesh(dim=3)
+    m1.add_node([0, 0, 0])
+    m1.add_node([0, 0, 1])
+    m1.add_node([0, 1, 1])
+    #m1.add_node([1, 1, 1])
+    m1.add_element([1, 2], "poteau", "k", 1, 1)
+    m1.add_element([2, 3], "arba", "r", 1, 1)
+    #m1.add_element([3, 4], "arba", "r", 10, 10)
+    m1.node_table()
+    f = FEM_Model(m1)
+    #f.apply_distributed_load(1, [2, 3])
+    f.apply_load([0,0,-0.1,0,0,0], 3)
+    f.plot_forces3D(type='nodal')
+    f.apply_bc([1, 1, 1, 1, 1, 1], 1)
+    #f.apply_bc([1, 1, 1, 1, 1, 1], 4)
+    f.solver_frame()
+    f.plot_disp_f_3D(dir = "sum")
+    plt.show()
+    f.U_table()
+    f.R_table()
     return
 
 def validation_2d() : 
@@ -1065,7 +1194,7 @@ def test_cantilever() :
     return 
 
 if __name__ == "__main__" :
-    test_3d()
+    validation_3d()
     
 '''
 TODO : 
