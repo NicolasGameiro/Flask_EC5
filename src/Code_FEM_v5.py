@@ -65,7 +65,7 @@ class Mesh :
             found, index = self.check_node(node)
             if found == False : 
                 self.node_list = np.append(self.node_list,np.array([node]), axis=0)
-                print("noeud ajouté")
+                #print("noeud ajouté")
             else :
                 print("noeud deja dans le maillage")
         if self.debug == True : 
@@ -123,7 +123,7 @@ class Mesh :
             self.name = np.append(self.name, np.array(name))
             self.color = np.append(self.color, np.array(color))
             self.Section = np.append(self.Section, np.array([[h, l]]), axis = 0)
-            print("element ajouté")
+            #print("element ajouté")
         else :
             print("element deja dans le maillage")
         if self.debug == True : 
@@ -268,7 +268,7 @@ class FEM_Model() :
             print("Error : node specified not in the mesh")
         elif (len(node_load) == 3) or (len(node_load) == 6):
             self.load[node-1,:] = node_load
-            print("nodal load applied")
+            #print("nodal load applied")
             if self.mesh.debug == True :
                 print(self.load)
         else:
@@ -300,12 +300,12 @@ class FEM_Model() :
             for i in range(len(node_bc)) : 
                 if node_bc[i] == 1 : 
                     self.lbc.append(i+3*(node-1))
-            print("boundary condition applied")
+            #print("boundary condition applied")
         elif len(node_bc) == 6 :
             for i in range(len(node_bc)) : 
                 if node_bc[i] == 1 : 
                     self.lbc.append(i+6*(node-1))
-            print("boundary condition applied")
+            #print("boundary condition applied")
         else : 
             print("Error : uncorrect bc format")
     
@@ -350,11 +350,11 @@ class FEM_Model() :
         S = h*b*1e-4
         I = b*h**3/12*1e-8
         K_elem = self.E/L_e*np.array([[S, 0, 0 , -S, 0, 0],
-                                    [0, 12*I/L_e**2 , 6*I/L_e, 0, -12*I/L_e**2, 6*I/L_e],
-                                    [0, 6*I/L_e , 4*I, 0, -6*I/L_e, 2*I],
-                                    [-S, 0, 0 , S, 0, 0],
-                                    [0, -12*I/L_e**2 , -6*I/L_e, 0, 12*I/L_e**2, -6*I/L_e],
-                                    [0, 6*I/L_e , 2*I, 0, -6*I/L_e, 4*I]])
+                                     [ 0, 12*I/L_e**2 , 6*I/L_e, 0, -12*I/L_e**2, 6*I/L_e],
+                                     [ 0, 6*I/L_e , 4*I, 0, -6*I/L_e, 2*I],
+                                     [-S, 0, 0 , S, 0, 0],
+                                     [ 0, -12*I/L_e**2 , -6*I/L_e, 0, 12*I/L_e**2, -6*I/L_e],
+                                     [ 0, 6*I/L_e , 2*I, 0, -6*I/L_e, 4*I]])
         return K_elem
     
     def stress(self) : 
@@ -603,11 +603,19 @@ class FEM_Model() :
         self.res['React'] = []
         self.res['node'] = []
         self.res['elem'] = []
-        for i in range(len(self.mesh.node_list)) : 
-            self.res['U'].append({'node' : i + 1 , 'Ux' : self.U[i][0] , 'Uy' : self.U[i+1][0] , 'phi' : self.U[i+2][0]})
-            self.res['React'].append({'node' : i + 1 , 'Fx' : self.React[i][0] , 'Fy' : self.React[i+1][0] , 'Mz' : self.React[i+2][0]})
-            self.res['node'].append({'node' : i + 1 , 'X' : self.mesh.node_list[i][0] , 'Y' : self.mesh.node_list[i][1]})
-            self.res['elem'].append({'elem' : i + 1 , 'node i' : self.mesh.element_list[i][0] , 'node j' : self.mesh.element_list[i][1]})
+        if self.mesh.dim == 2 :
+            for i in range(len(self.mesh.node_list)) : 
+                self.res['U'].append({'node' : i + 1 , 'Ux' : self.U[i*3] , 'Uy' : self.U[3*i+1] , 'phi' : self.U[3*i+2]})
+                self.res['React'].append({'node' : i + 1 , 'Fx' : self.React[i][0] , 'Fy' : self.React[i+1][0] , 'Mz' : self.React[i+2][0]})
+                self.res['node'].append({'node' : i + 1 , 'X' : self.mesh.node_list[i][0] , 'Y' : self.mesh.node_list[i][1]})
+                #self.res['elem'].append({'elem' : i + 1 , 'node i' : self.mesh.element_list[i][0] , 'node j' : self.mesh.element_list[i][1]})
+        elif self.mesh.dim == 3:
+            for i in range(len(self.mesh.node_list)) : 
+                self.res['U'].append({'node' : i + 1 , 'Ux' : self.U[6*i] , 'Uy' : self.U[6*i+1] , 'Uz' : self.U[6*i+2], 
+                                      'thx' : self.U[6*i+3] , 'thy' : self.U[6*i+4] , 'thz' : self.U[6*i+5]})
+                self.res['React'].append({'node' : i + 1 , 'Fx' : self.React[i][0] , 'Fy' : self.React[i+1][0] , 'Mz' : self.React[i+2][0]})
+                self.res['node'].append({'node' : i + 1 , 'X' : self.mesh.node_list[i][0] , 'Y' : self.mesh.node_list[i][1]})
+                #self.res['elem'].append({'elem' : i + 1 , 'node i' : self.mesh.element_list[i][0] , 'node j' : self.mesh.element_list[i][1]})
         return self.U, self.React, self.res
     
     def charge_2D(self, pt1, pt2, q):
@@ -1080,29 +1088,7 @@ def validation_3d():
     plt.show()
     f.U_table()
     f.R_table()
-    return
-
-def validation_2d() : 
-    mesh = Mesh(2,[],[],debug = True)
-    mesh.add_node([0,0])
-    mesh.add_node([0,2])
-    mesh.add_node([2,2])
-    mesh.add_element([1,2], "barre", "b",12, 12)
-    mesh.add_element([2,3], "barre", "b",12, 12)
-    mesh.geom()
-    
-    f = FEM_Model(mesh)
-    f.apply_load([0,-100,0],3)
-    f.apply_bc([1,1,1],1)
-    print(f.get_bc())
-    f.plot_forces(type = 'nodal', pic = True)
-    f.solver_frame()
-    f.plot_disp_f(dir='x', pic = True)
-    f.plot_disp_f(dir='y' , pic = True)
-    f.plot_disp_f(dir='sum', pic = True)
-    f.plot_disp_f_ex()
-    f.U_table()
-    f.R_table()
+    return  
     
 def validation_2d() : 
     mesh = Mesh(2,[],[],debug = True)
