@@ -52,10 +52,16 @@ class Mesh :
     def __init__(self, dim, node_list = [], element_list = [], debug = False) :
         self.dim = dim
         self.node_list = np.empty((0,dim))
+        self.node_list_ex = np.empty((0,dim))
         self.element_list = np.empty((0,2),dtype = int)
+        self.element_list_ex = np.empty((0,2),dtype = int)
         self.name = np.empty((0,1))
         self.color = np.empty((0,1))
         self.Section = np.empty((0,2))
+        self.name_ex = np.empty((0,1))
+        self.color_ex = np.empty((0,1))
+        self.Section_ex = np.empty((0,2))
+        self.div = np.empty((0,1), dtype = int)
         self.debug = debug
     
     def add_node(self,node) : 
@@ -116,13 +122,14 @@ class Mesh :
                 found = True
         return found, index
     
-    def add_element(self, elem, name = "poutre", color = "k", h = "22", l = "10") : 
+    def add_element(self, elem, name = "poutre", color = "k", h = "22", l = "10", div = 1) : 
         found, index = self.check_elem(elem)
         if found == False : 
             self.element_list = np.append(self.element_list,np.array([elem]), axis=0)
             self.name = np.append(self.name, np.array(name))
             self.color = np.append(self.color, np.array(color))
             self.Section = np.append(self.Section, np.array([[h, l]]), axis = 0)
+            self.div = np.append(self.div, np.array(div))
             #print("element ajouté")
         else :
             print("element deja dans le maillage")
@@ -159,6 +166,30 @@ class Mesh :
             for i in range(len(self.node_list)) : 
                 tab.add_row([int(i+1), self.node_list[i,0], self.node_list[i,1], self.node_list[i,2]])
         print(tab)
+        
+    def maillage(self):
+        for i in range(len(self.element_list)):
+            el = self.element_list[i]
+            n1, n2 = el[0]-1, el[1]-1
+            div = self.div[i]
+            x1, y1 = self.node_list[n1]
+            x2, y2 = self.node_list[n2]
+            vecteur_directeur = np.array([x2-x1, y2-y1])
+            for j in range(div):
+                node = [x1 + vecteur_directeur[0]/div*j,
+                        y1 + vecteur_directeur[1]/div*j]
+                self.node_list_ex = np.append(self.node_list_ex, np.array([node]), axis=0)
+            self.name_ex = np.append(self.name_ex, np.array([self.name[i]]*div))
+            self.color_ex = np.append(self.color_ex, np.array([self.color[i]]*div))
+            self.Section_ex = np.append(self.Section_ex, np.array([self.Section[i]]*div).reshape(div,2), axis = 0)
+        nb_elem = len(self.element_list) + sum(self.div) -  len(self.div)
+        for k in range(nb_elem):
+            self.element_list_ex = np.append(self.element_list_ex,np.array([[k+1,k+2]]), axis=0)
+        self.node_list_ex = np.append(self.node_list_ex, [np.array(self.node_list[self.element_list[-1][1]-1 ])], axis=0)
+        print("node list extended : ", self.node_list_ex)
+        print("element list extended :", self.element_list_ex)
+        print("section extended list :", self.Section_ex)
+        return self.node_list_ex, self.element_list_ex, self.name_ex, self.color_ex, self.Section_ex
     
     def __str__(self):
         return f""" Information sur le maillage : \n
@@ -244,19 +275,22 @@ class Mesh :
         return fig
         
 class FEM_Model() : 
-    def __init__(self, mesh, E = 10.0E9) :
+    def __init__(self, mesh, E = 210E9) :
         self.mesh = mesh
+        self.mesh.node_list, self.mesh.element_list, self.mesh.name, self.mesh.color, self.mesh.Section = self.mesh.maillage()
         self.E = E
         if self.mesh.dim == 2:
             self.load = np.zeros([len(self.mesh.node_list),3])
             self.bc = np.eye(len(self.mesh.node_list)*3)
             self.U = np.zeros(len(self.mesh.node_list)*3)
             self.React = np.zeros(len(self.mesh.node_list)*3)
+            self.S = np.empty((0,4))
         elif self.mesh.dim == 3:
             self.load = np.zeros([len(self.mesh.node_list),6])
             self.bc = np.eye(len(self.mesh.node_list)*6)
             self.U = np.zeros(len(self.mesh.node_list)*6)
             self.React = np.zeros(len(self.mesh.node_list)*6)
+            self.S = np.empty((0,7))
         self.dist_load = np.array([[1,2,0]])
         self.lbc = []
     
@@ -596,6 +630,62 @@ class FEM_Model() :
         U_r = inv(K_glob_r).dot(F_r)
         self.U = self.bc.dot(U_r)
         self.React = K_glob.dot(self.U) - F
+        
+    def get_stress(self, elem): # bien prendre les valeurs dans le repère local de l'element
+        NL = self.mesh.node_list
+        node_i, node_j = elem[0]-1, elem[1]-1
+        L = self.get_length(elem)
+        U = self.U
+        G = 81E9
+        h, b = 0.1, 0.1 # self.mesh.Section[i,0], self.mesh.Section[i,1]
+        Iy = b * h ** 3 / 12
+        Iz = h * b ** 3 / 12
+        k = 5 / 6
+        if self.mesh.dim == 2:
+            epsilon_x = (U[3*node_j] - U[3*node_i])/L
+            sigma_x = self.E*epsilon_x
+            sigma_fy = self.E * h * (U[3 * node_j + 2] - U[3 * node_i + 2]) / L
+            tau_y = np.array([0])
+            sigma_VM = np.sqrt((sigma_x + sigma_fy)**2 + 3*(tau_y)**2)
+            if self.mesh.debug == True :
+                print("déformation (en mm) =", epsilon_x[0]*1E3)
+                print("contrainte normale (en MPa) =",sigma_x[0]/1E6)
+                print("contrainte normale de flexion (en MPa) =", sigma_fy[0] / 1E6)
+                print("contrainte cisaillement de flexion (en MPa) =", tau_y[0]/1E6)
+                print("contrainte Von Mises (en MPa) =", sigma_VM[0]/1E6)
+            return np.array([sigma_x, sigma_fy, tau_y, sigma_VM])
+        elif self.mesh.dim == 3:
+            RR = self.Rot_3D(NL[elem[1]-1])
+            rot_max = RR[0:6,0:6]
+            Ui = np.transpose(rot_max).dot(U[6 * node_j : 6 * node_j + 6])
+            Uj = np.transpose(rot_max).dot(U[6 * node_j : 6 * node_j + 6])
+            epsilon_x = (Uj[0] - Ui[0])/L
+            sigma_x = self.E * epsilon_x
+            tau_x = G * (Uj[3] - Ui[3])/L * max(h,b)
+            sigma_fy = self.E * h * (U[6*node_j + 5] - U[6*node_i + 5])/L
+            sigma_fz = self.E * b * (U[6 * node_j + 4] - U[6 * node_i + 4]) / L
+            Ay = 12 * self.E * Iy / (k * G * h * b * L ** 2 + 12 * self.E * Iy)
+            Az = 12 * self.E * Iz / (k * G * h * b * L ** 2 + 12 * self.E * Iz)
+            tau_y = -G * Ay * (2 * U[6 * node_i + 1] + U[6 * node_i + 5] * L - 2 * U[6 * node_j + 1] + U[6 * node_j + 5] * L) / L ** 2
+            tau_z = -G * Az * (2 * U[6 * node_i + 2] + U[6 * node_i + 4] * L - 2 * U[6 * node_j + 2] + U[6 * node_j + 4] * L) / L ** 2
+            sigma_VM = np.sqrt((sigma_x + sigma_fy + sigma_fz)**2 + 3*(tau_x + tau_y + tau_z)**2)
+            if self.mesh.debug == True :
+                print("contrainte normale (en MPa) =",sigma_x[0]/1E6)
+                print("contrainte normale de flexion (en MPa) =", sigma_fz[0]/1E6)
+                print("contrainte normale de flexion (en MPa) =", sigma_fy[0]/1E6)
+                print("contrainte cisaillement de torsion (en MPa) =", tau_x[0]/1E6)
+                print("contrainte cisaillement de flexion (en MPa) =", tau_y[0]/1E6)
+                print("contrainte cisaillement de flexion (en MPa) =", tau_z[0]/1E6)
+                print("contrainte Von Mises (en MPa) =", sigma_VM[0]/1E6)
+            return np.array([sigma_x, sigma_fy, sigma_fz, tau_x, tau_y, tau_z, sigma_VM])
+        
+    def stress(self): #TODO : ne marche pas
+        EL = self.mesh.element_list
+        for elem in EL:
+            print('element : ', elem)
+            print(self.get_stress(elem))
+            self.S = np.append(self.S,self.get_stress(elem)[1])
+        return self.S
     
     def get_res(self):
         self.res = {}
@@ -685,7 +775,7 @@ class FEM_Model() :
         scale_force = np.max(np.abs(F))
         x = [x for x in self.mesh.node_list[:,0]]
         y = [y for y in self.mesh.node_list[:,1]]
-        size = 200
+        size = 50
         offset = size/40000.
         plt.scatter(x, y, c='y', s=size, zorder=5)
         for i, location in enumerate(zip(x,y)):
@@ -818,7 +908,7 @@ class FEM_Model() :
         plt.axis('equal')
         return
 
-    def plot_disp_f(self,scale=1e3,r=150,dir='x', pic = False, path = "./") :
+    def plot_disp_f(self,scale=1e2,r=150,dir='x', pic = False, path = "./") :
         NL = self.mesh.node_list
         EL = self.mesh.element_list
         U = self.U
@@ -1091,25 +1181,27 @@ def validation_3d():
     return  
     
 def validation_2d() : 
-    mesh = Mesh(2,[],[],debug = True)
+    mesh = Mesh(2,[],[],debug = False)
     mesh.add_node([0,0])
-    mesh.add_node([0,80]) #inches
-    mesh.add_node([100,80]) #inches
-    mesh.add_element([1,2], "barre", "b",12, 12)
-    mesh.add_element([2,3], "barre", "b",12, 12)
+    mesh.add_node([0,10]) #inches
+    mesh.add_node([10,10]) #inches
+    mesh.add_element([1,2], "barre", "b",12, 12, 10)
+    mesh.add_element([2,3], "barre", "b",12, 12, 10)
     #mesh.geom()
     
     f = FEM_Model(mesh)
-    f.apply_distributed_load(100, [2,3])
+    f.apply_distributed_load(10, [11,21])
     f.apply_bc([1,1,1],1)
-    f.apply_bc([0,1,0],3)
-    print(f.get_bc())
-    f.plot_forces(type = 'nodal', pic = True)
+    #f.apply_bc([0,1,0],3)
+    #print(f.get_bc())
+    f.plot_forces(type = 'dist', pic = False)
     f.solver_frame()
-    f.plot_disp_f(dir='x', pic = True)
-    f.plot_disp_f(dir='y' , pic = True)
+    #f.plot_disp_f(dir='x', pic = True)
+    #f.plot_disp_f(dir='y' , pic = True)
     f.plot_disp_f(dir='sum', pic = True)
     #f.plot_disp_f_ex()
+    S = f.stress()
+    print("stress :", S)
     f.U_table()
     f.R_table()
 
@@ -1125,7 +1217,7 @@ def test_2d() :
     mesh.add_node([p/4,h/2])
     mesh.add_node([3*p/4,h/2])
     mesh.add_element([1,2], "entrait", "r", 22, 10)
-    mesh.add_element([2,3], "entrait", "r", 22 , 10)
+    mesh.add_element([2,3], "entrait", "r", 22, 10)
     mesh.add_element([3,6], "arba", "g", 20, 8)
     mesh.add_element([6,4], "arba", "g", 20, 8)
     mesh.add_element([4,5], "arba", "g", 20, 8)
@@ -1139,20 +1231,19 @@ def test_2d() :
     f = FEM_Model(mesh)
     #f.apply_load([0,-1000,0],4)
     f.apply_bc([1,1,1],1)
-    f.apply_bc([1,1,1],3)
-    print(f.get_bc())
+    f.apply_bc([1,1,1],5)
     f.apply_distributed_load(2000, [1,4])
     f.apply_distributed_load(2000, [4,3])
     f.plot_forces(type = 'dist', pic = True)
     f.solver_frame()
     U, React, res = f.get_res()
-    f.plot_disp_f(dir='x', scale = 1e3, pic = True)
-    f.plot_disp_f(dir='y' , scale = 1e3, pic = True)
-    f.plot_disp_f(dir='sum', scale = 1e3, pic = True)
+    f.plot_disp_f(dir='x', scale = 1e3)
+    #f.plot_disp_f(dir='y' , scale = 1e3, pic = True)
+    #f.plot_disp_f(dir='sum', scale = 1e3, pic = True)
     #f.plot_disp_f_ex()
     f.U_table()
     f.R_table()
-   # f.stress()
+    # f.stress()
     #f.rapport()
     return 
 
@@ -1160,27 +1251,21 @@ def test_cantilever() :
     mesh = Mesh(2,[],[],debug=False)
     mesh.add_node([0,0])
     mesh.add_node([1,0])
-    mesh.add_node([2,0])
-    mesh.add_node([4,0])
-    mesh.add_node([5,0])
-    mesh.add_element([1,2], "entrait", "r", 22, 10)
-    mesh.add_element([2,3], "entrait", "r", 22, 10)
-    mesh.add_element([3,4], "entrait", "r", 22, 10)
-    mesh.add_element([4,5], "entrait", "r", 22, 10)
-    mesh.node_table()
+    mesh.add_element([1,2], "entrait", "r", 22, 10, 10)
     f = FEM_Model(mesh)
-    f.apply_load([0,-1000,0],5)
+    f.apply_load([0,-1000,0],-1)
     f.apply_bc([1,1,1],1)
     f.plot_forces(type = 'dist', pic = False)
     f.solver_frame()
-    U, React = f.get_res()
     #f.plot_disp_f_ex(scale=1e2)
-    f.plot_disp_f(scale=1e2,dir='y')
+    S = f.stress()
+    print("stress :", S)
+    f.plot_disp_f(scale=1e4,dir='y')
     f.U_table()
     return 
 
 if __name__ == "__main__" :
-    validation_3d()
+    test_cantilever()
     
 '''
 TODO : 
