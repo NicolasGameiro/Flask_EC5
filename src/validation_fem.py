@@ -47,14 +47,15 @@ def validation_cas1(nb_elem = 2) :
     print('f_max (FEM) = ', np.format_float_scientific(max(Uy, key=abs), precision = 2, exp_digits=2))
     print("erreur max :", err_max)
     ### Contrainte 
-    sx, sf, t, svm = f.get_stress([1,2])
+    S = f.stress()
+    sf = S[1]
     M_max = F*L
     sigma_f_a = M_max/I*h/2*1E-2
     print("contrainte de flexion analytique (MPa) =", np.format_float_scientific(sigma_f_a/1E6, precision = 2, exp_digits=2))
-    print("contrainte de flexion FEM (MPa) = ", np.format_float_scientific(sf/1E6, precision = 2, exp_digits=2))
-    ecart_abs = np.round(abs(sigma_f_a - sf)/1E6,2)
+    print("contrainte de flexion FEM (MPa) = ", np.format_float_scientific(sf, precision = 2, exp_digits=2))
+    ecart_abs = np.round(abs(sigma_f_a/1E6 - sf),2)
     ecart_relatif = np.round(abs(sigma_f_a - sf)/abs(sigma_f_a)*100, 2)
-    print("ecart absolu =", ecart_abs[0], " MPa (ecart_relatif = ", ecart_relatif[0], "%)")
+    print("ecart absolu =", ecart_abs, " MPa (ecart_relatif = ", ecart_relatif, "%)")
     
     fig = plt.figure()
     ax = fig.add_subplot(1, 2, 1)

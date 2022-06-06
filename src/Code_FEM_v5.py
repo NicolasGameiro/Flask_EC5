@@ -391,7 +391,7 @@ class FEM_Model() :
                                      [ 0, 6*I/L_e , 2*I, 0, -6*I/L_e, 4*I]])
         return K_elem
     
-    def stress(self) : 
+    def stress_2(self) : 
         S = self.mesh.S
         I = self.mesh.Iy
         h = 0.22
@@ -643,17 +643,19 @@ class FEM_Model() :
         k = 5 / 6
         if self.mesh.dim == 2:
             epsilon_x = (U[3*node_j] - U[3*node_i])/L
-            sigma_x = self.E*epsilon_x
-            sigma_fy = self.E * h * (U[3 * node_j + 2] - U[3 * node_i + 2]) / L
-            tau_y = np.array([0])
-            sigma_VM = np.sqrt((sigma_x + sigma_fy)**2 + 3*(tau_y)**2)
+            sigma_x = self.E*epsilon_x /1E6
+            sigma_fy = self.E * h * (U[3 * node_j + 2] - U[3 * node_i + 2]) / L /1E6
+            tau_y = np.array([0])/1E6
+            sigma_VM = np.sqrt((sigma_x + sigma_fy)**2 + 3*(tau_y)**2)/1E6
+            sigma_T = np.sqrt((sigma_x + sigma_fy)**2 + 4*(tau_y)**2)/1E6
             if self.mesh.debug == True :
                 print("déformation (en mm) =", epsilon_x[0]*1E3)
-                print("contrainte normale (en MPa) =",sigma_x[0]/1E6)
-                print("contrainte normale de flexion (en MPa) =", sigma_fy[0] / 1E6)
-                print("contrainte cisaillement de flexion (en MPa) =", tau_y[0]/1E6)
-                print("contrainte Von Mises (en MPa) =", sigma_VM[0]/1E6)
-            return np.array([sigma_x, sigma_fy, tau_y, sigma_VM])
+                print("contrainte normale (en MPa) =",sigma_x[0])
+                print("contrainte normale de flexion (en MPa) =", sigma_fy[0])
+                print("contrainte cisaillement de flexion (en MPa) =", tau_y[0])
+                print("contrainte Von Mises (en MPa) =", sigma_VM[0])
+                print("contrainte Tresca (en MPa) =", sigma_T[0])
+            return np.array([sigma_x, sigma_fy, tau_y, sigma_VM, sigma_T])
         elif self.mesh.dim == 3:
             RR = self.Rot_3D(NL[elem[1]-1])
             rot_max = RR[0:6,0:6]
@@ -679,12 +681,10 @@ class FEM_Model() :
                 print("contrainte Von Mises (en MPa) =", sigma_VM[0]/1E6)
             return np.array([sigma_x, sigma_fy, sigma_fz, tau_x, tau_y, tau_z, sigma_VM])
         
-    def stress(self): #TODO : ne marche pas
+    def stress(self):
         EL = self.mesh.element_list
         for elem in EL:
-            print('element : ', elem)
-            print(self.get_stress(elem))
-            self.S = np.append(self.S,self.get_stress(elem)[1])
+            self.S = np.append(self.S,self.get_stress(elem))
         return self.S
     
     def get_res(self):
@@ -949,6 +949,54 @@ class FEM_Model() :
             plt.savefig(path + 'res_' + dir + '.png', format='png', dpi=200)
         return
     
+    def plot_stress(self, scale = 1e4, r = 100, s = 'sx', pic = False, path = "./"):
+        NL = self.mesh.node_list
+        EL = self.mesh.element_list
+        U = self.U
+        S = self.S
+        x_scatter = []
+        y_scatter = []
+        color = []
+        plt.figure()
+        # maillage non deforme
+        for i in range(len(EL)) :
+            xi,xj = NL[EL[i,0]-1,0],NL[EL[i,1]-1,0]
+            yi,yj = NL[EL[i,0]-1,1],NL[EL[i,1]-1,1]
+            plt.plot([xi,xj],[yi,yj],color = 'k', lw = 1, linestyle = '--')
+        for i in range(len(EL)) :
+            n1, n2 = EL[i,0]-1, EL[i,1]-1
+            if s == 'sx' : 
+                plt.title("tensile stress (sx)")
+                x_scatter.append(np.linspace(NL[n1,0]+U[n1*3]*scale,NL[n2,0]+U[n2*3]*scale,r))
+                y_scatter.append(np.linspace(NL[n1,1]+U[n1*3+1]*scale,NL[n2,1]+U[n2*3+1]*scale,r))
+                color.append(np.ones(r)*S[i*5])
+            elif s == "sf" : 
+                plt.title("bending stress (sf)")
+                x_scatter.append(np.linspace(NL[n1,0]+U[n1*3]*scale,NL[n2,0]+U[n2*3]*scale,r))
+                y_scatter.append(np.linspace(NL[n1,1]+U[n1*3+1]*scale,NL[n2,1]+U[n2*3+1]*scale,r))
+                color.append(np.ones(r)*S[i*5+1])
+            elif s == "ty" : 
+                plt.title("shear stress (ty)")
+                x_scatter.append(np.linspace(NL[n1,0]+U[n1*3]*scale,NL[n2,0]+U[n2*3]*scale,r))
+                y_scatter.append(np.linspace(NL[n1,1]+U[n1*3+1]*scale,NL[n2,1]+U[n2*3+1]*scale,r))
+                color.append(np.ones(r)*S[i*5+2])
+            elif s == "s_vm" : 
+                plt.title("Von Mises Stress (svm)")
+                x_scatter.append(np.linspace(NL[n1,0]+U[n1*3]*scale,NL[n2,0]+U[n2*3]*scale,r))
+                y_scatter.append(np.linspace(NL[n1,1]+U[n1*3+1]*scale,NL[n2,1]+U[n2*3+1]*scale,r))
+                color.append(np.ones(r)*S[i*5+3])
+        #Permet de reverse la barre de couleur si max negatif 
+        if min(U) > 0 :
+            cmap = plt.get_cmap('jet')
+        elif min(U) <= 0 : 
+            cmap = plt.get_cmap('jet_r')
+        plt.scatter(x_scatter,y_scatter,c = color,cmap = cmap,s=10, edgecolor = 'none' )
+        plt.colorbar(label='stress', orientation='vertical') #ScalarMappable(norm = norm_x, cmap = cmap ))
+        plt.axis('equal')
+        if pic : 
+            plt.savefig(path + 'stress_' + s + '.png', format='png', dpi=200)
+        return
+    
     def plot_axis(self,elem):
          print(elem)
          NL = self.mesh.node_list
@@ -1092,6 +1140,29 @@ class FEM_Model() :
                              np.format_float_scientific(self.React[i*6+4][0], precision = 2, exp_digits=2),
                              np.format_float_scientific(self.React[i*6+5][0], precision = 2, exp_digits=2)])
         print(tab)
+        
+    def S_table(self):
+        tab = pt()
+        if self.mesh.dim == 2 :
+            tab.field_names = ["Elem","Sx (MPa)", "Sf (MPa)", "Ty (MPa)", "SVM (MPa)", "Tresca (MPa)"]
+            for i in range(len(self.mesh.element_list)) : 
+                tab.add_row([int(i+1),
+                            np.format_float_scientific(self.S[i*5], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.S[i*5+1], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.S[i*5+2], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.S[i*5+3], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.S[i*5+4], precision = 2, exp_digits=2)])
+        else :
+            tab.field_names = ["Node","Ux (m)", "Uy (m)", "Uz (m)", "Phix (rad)", "Phiy (rad)", "Phiz (rad)"]
+            for i in range(len(self.mesh.node_list)) : 
+                tab.add_row([int(i+1), 
+                             np.format_float_scientific(self.U[i*6], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*6+1], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*6+2], precision = 2, exp_digits=2), 
+                             np.format_float_scientific(self.U[i*6+3], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*6+4], precision = 2, exp_digits=2),
+                            np.format_float_scientific(self.U[i*6+5], precision = 2, exp_digits=2)])
+        print(tab)
     
     def rapport(self) : 
         doc = DocxTemplate("cctr_template.docx")
@@ -1185,12 +1256,12 @@ def validation_2d() :
     mesh.add_node([0,0])
     mesh.add_node([0,10]) #inches
     mesh.add_node([10,10]) #inches
-    mesh.add_element([1,2], "barre", "b",12, 12, 10)
-    mesh.add_element([2,3], "barre", "b",12, 12, 10)
+    mesh.add_element([1,2], "barre", "b",15, 15, 5)
+    mesh.add_element([2,3], "barre", "b",15, 15, 5)
     #mesh.geom()
     
     f = FEM_Model(mesh)
-    f.apply_distributed_load(10, [11,21])
+    f.apply_distributed_load(10, [6,11])
     f.apply_bc([1,1,1],1)
     #f.apply_bc([0,1,0],3)
     #print(f.get_bc())
@@ -1201,7 +1272,8 @@ def validation_2d() :
     f.plot_disp_f(dir='sum', pic = True)
     #f.plot_disp_f_ex()
     S = f.stress()
-    print("stress :", S)
+    f.plot_stress(scale = 1e2, r = 100, s = 'sf', pic = False, path = "./")
+    f.S_table()
     f.U_table()
     f.R_table()
 
@@ -1258,14 +1330,13 @@ def test_cantilever() :
     f.plot_forces(type = 'dist', pic = False)
     f.solver_frame()
     #f.plot_disp_f_ex(scale=1e2)
-    S = f.stress()
-    print("stress :", S)
-    f.plot_disp_f(scale=1e4,dir='y')
-    f.U_table()
+    f.plot_disp_f(scale=1e4, dir='y')
+    f.plot_stress(scale = 1e4, r = 100, s = 'sf', pic = False, path = "./")
+    f.S_table()
     return 
 
 if __name__ == "__main__" :
-    test_cantilever()
+    validation_2d()
     
 '''
 TODO : 
