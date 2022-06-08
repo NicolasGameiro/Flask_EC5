@@ -201,7 +201,7 @@ def validation_cas4(nb_elem=1):
     
     """
     ### Analytique
-    F = -1000
+    F = -0.1
     L = 1
     E = 210E9
     I = 0.1 * 0.1 ** 3 / 12
@@ -223,7 +223,7 @@ def validation_cas4(nb_elem=1):
     f.solver_frame()
     f.U_table()
     f.plot_forces3D(type='nodal')
-    f.plot_disp_f(dir='sum')
+    f.plot_disp_f_3D(dir='sum')
     U, R, res = f.get_res()
     Uz = U[-4][0]
     erreur = abs(uz - Uz)
@@ -251,7 +251,7 @@ def validation_cas4(nb_elem=1):
     return erreur
 
 if __name__ == "__main__" :
-    validation_cas1()
+    validation_cas4()
     
     
     """

@@ -1,69 +1,61 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1> Hello ! </h1>
-    
-    
-    <h2 class="pb-2 border-bottom">Icon grid</h2>
 
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 py-5">
-      <div class="col d-flex align-items-start">
-        <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#bootstrap"></use></svg>
-        <div>
-          <h4 class="fw-bold mb-0">Featured title</h4>
-          <p>Paragraph of text beneath the heading to explain the heading.</p>
+    <h2 class="pb-2 border-bottom">Application de calcul EC5 : version 1.0 </h2>
+
+  <div class="container px-4 py-5" id="custom-cards">
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+        <div class="col">
+          <div class="card shadow-sm">
+            <img class="bd-placeholder-img card-img-to" width="100%" height="225" src="../static/images/img_ferme.png" >
+            <div class="card-body">
+              <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-outline-secondary">Utiliser</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary">Détails</button>
+                </div>
+                <small class="text-muted">version 1.0</small>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="col d-flex align-items-start">
-        <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#cpu-fill"></use></svg>
-        <div>
-          <h4 class="fw-bold mb-0">Featured title</h4>
-          <p>Paragraph of text beneath the heading to explain the heading.</p>
+        <div class="col">
+          <div class="card shadow-sm">
+            <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: Thumbnail" preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title><rect width="100%" height="100%" fill="#55595c"/><text x="50%" y="50%" fill="#eceeef" dy=".3em">Thumbnail</text></svg>
+
+            <div class="card-body">
+              <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
+                </div>
+                <small class="text-muted">9 mins</small>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="col d-flex align-items-start">
-        <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#calendar3"></use></svg>
-        <div>
-          <h4 class="fw-bold mb-0">Featured title</h4>
-          <p>Paragraph of text beneath the heading to explain the heading.</p>
+        <div class="col">
+          <div class="card shadow-sm">
+            <svg class="bd-placeholder-img card-img-top" width="100%" height="225" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: Thumbnail" preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title><rect width="100%" height="100%" fill="#55595c"/><text x="50%" y="50%" fill="#eceeef" dy=".3em">Thumbnail</text></svg>
+            
+            <div class="card-body">
+              <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-outline-secondary">View</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary">Edit</button>
+                </div>
+                <small class="text-muted">9 mins</small>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="col d-flex align-items-start">
-        <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#home"></use></svg>
-        <div>
-          <h4 class="fw-bold mb-0">Featured title</h4>
-          <p>Paragraph of text beneath the heading to explain the heading.</p>
-        </div>
-      </div>
-      <div class="col d-flex align-items-start">
-        <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#speedometer2"></use></svg>
-        <div>
-          <h4 class="fw-bold mb-0">Featured title</h4>
-          <p>Paragraph of text beneath the heading to explain the heading.</p>
-        </div>
-      </div>
-      <div class="col d-flex align-items-start">
-        <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#toggles2"></use></svg>
-        <div>
-          <h4 class="fw-bold mb-0">Featured title</h4>
-          <p>Paragraph of text beneath the heading to explain the heading.</p>
-        </div>
-      </div>
-      <div class="col d-flex align-items-start">
-        <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#geo-fill"></use></svg>
-        <div>
-          <h4 class="fw-bold mb-0">Featured title</h4>
-          <p>Paragraph of text beneath the heading to explain the heading.</p>
-        </div>
-      </div>
-      <div class="col d-flex align-items-start">
-        <svg class="bi text-muted flex-shrink-0 me-3" width="1.75em" height="1.75em"><use xlink:href="#tools"></use></svg>
-        <div>
-          <h4 class="fw-bold mb-0">Featured title</h4>
-          <p>Paragraph of text beneath the heading to explain the heading.</p>
-        </div>
-      </div>
-    </div>
+      
+  </div>
   
 {% endblock %}
 

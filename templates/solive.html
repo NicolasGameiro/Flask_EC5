@@ -16,14 +16,14 @@
   
   
 
-<form action="{{ url_for('solive') }}" method='POST'>
+<form action="{{ url_for('solive') }}" method='POST' id="todo-form">
 
     <h2> 1. Géométrie </h2>
     <hr class="col-6 col-md-6 mb-5" >
     <div class="row">
         <div class="col-2">
             <label for="hauteur" class="form-label">Hauteur h (cm) </label>
-            <input type="number" class="form-control" name="hauteur" value="22">
+            <input type="number" class="form-control" name="hauteur" id="hauteur" value="22">
         </div>
         <div class="col-2">
             <label for="largeur" class="form-label">Largeur b (cm) </label>
@@ -111,6 +111,7 @@
     {% if res is defined %}
     </br> 
     <h2> 4. Résultats </h2>
+    {{ todo }}
     <hr class="col-6 col-md-6 mb-5" >
     
         <p> La charge linéique ELU vaut {{ q }} kN. </p>

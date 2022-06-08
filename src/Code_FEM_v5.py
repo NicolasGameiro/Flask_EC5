@@ -89,6 +89,19 @@ class Mesh :
                 if (self.node_list[index][0] == node[0]) and (self.node_list[index][1] == node[1]) and (self.node_list[index][2] == node[2]):
                     found = True
         return found, index
+    
+    def check_node_ex(self,node) : 
+        index = -1
+        found = False
+        while (found is not True) and (index+1 < len(self.node_list_ex)) and (self.node_list_ex.size != 0) : 
+            index += 1
+            if self.dim == 2:
+                if (self.node_list_ex[index][0] == node[0]) and (self.node_list_ex[index][1] == node[1]) :
+                    found = True
+            elif self.dim == 3 :
+                if (self.node_list_ex[index][0] == node[0]) and (self.node_list_ex[index][1] == node[1]) and (self.node_list_ex[index][2] == node[2]):
+                    found = True
+        return found, index
         
     
     def del_node(self,node) : 
@@ -168,6 +181,7 @@ class Mesh :
         print(tab)
         
     def maillage(self):
+        last_node = 1
         for i in range(len(self.element_list)):
             el = self.element_list[i]
             n1, n2 = el[0]-1, el[1]-1
@@ -175,20 +189,53 @@ class Mesh :
             x1, y1 = self.node_list[n1]
             x2, y2 = self.node_list[n2]
             vecteur_directeur = np.array([x2-x1, y2-y1])
-            for j in range(div):
+            for j in range(div+1):
                 node = [x1 + vecteur_directeur[0]/div*j,
-                        y1 + vecteur_directeur[1]/div*j]
-                self.node_list_ex = np.append(self.node_list_ex, np.array([node]), axis=0)
-            self.name_ex = np.append(self.name_ex, np.array([self.name[i]]*div))
-            self.color_ex = np.append(self.color_ex, np.array([self.color[i]]*div))
-            self.Section_ex = np.append(self.Section_ex, np.array([self.Section[i]]*div).reshape(div,2), axis = 0)
-        nb_elem = len(self.element_list) + sum(self.div) -  len(self.div)
-        for k in range(nb_elem):
-            self.element_list_ex = np.append(self.element_list_ex,np.array([[k+1,k+2]]), axis=0)
-        self.node_list_ex = np.append(self.node_list_ex, [np.array(self.node_list[self.element_list[-1][1]-1 ])], axis=0)
+                y1 + vecteur_directeur[1]/div*j]
+                found, index = self.check_node_ex(node)
+                print(found, node)
+                if found == False:
+                    self.node_list_ex = np.append(self.node_list_ex, np.array([node]), axis=0)
+                    print('ajout du noeud ', len(self.node_list_ex))
+                    # ajout du nouvel element
+                    if len(self.node_list_ex) > 1:
+                        self.element_list_ex = np.append(self.element_list_ex, np.array([[last_node, len(self.node_list_ex)]]), axis=0)
+                        self.name_ex = np.append(self.name_ex, np.array([self.name[i]]))
+                        self.color_ex = np.append(self.color_ex, np.array([self.color[i]]))
+                        self.Section_ex = np.append(self.Section_ex, np.array([self.Section[i]]), axis=0)
+                        print("ajout de l'element ", self.element_list_ex[-1])
+                        last_node = last_node + 1
+                else :
+                    print((node[0] == x1),(node[1] == y1))
+                    if (not (node[0] == x1)) or (not (node[1] == y1)):
+                        n = np.where(self.node_list_ex == node)
+                        n = max(list(n[0]),key=list(n[0]).count)
+                        print("le noeud ", n + 1, "existe deja")
+                        self.element_list_ex = np.append(self.element_list_ex, np.array([[last_node, n + 1]]), axis=0)
+                        self.name_ex = np.append(self.name_ex, np.array([self.name[i]]))
+                        self.color_ex = np.append(self.color_ex, np.array([self.color[i]]))
+                        self.Section_ex = np.append(self.Section_ex, np.array([self.Section[i]]), axis=0)
+                        print("ajout de l'element ", self.element_list_ex[-1])
+            print('\n #######')
+        
+        nb_elem = sum(self.div)
+        print("new nb_elem =", nb_elem)
+        
+        found, index = self.check_node_ex(node)
+        print(found, node)
+        if found == False:
+            pend(self.node_list_ex, [np.array(self.node_list[self.element_list[-1][1]-1 ])], axis=0)
         print("node list extended : ", self.node_list_ex)
         print("element list extended :", self.element_list_ex)
         print("section extended list :", self.Section_ex)
+        
+        # Si il n'y a pas de subdivision des éléments ont garde le maillage d'origine
+        test = np.count_nonzero(self.div-np.ones(len(self.div)))
+        print(test)
+        if test == 0 :
+            print("pas de maillage subdivisé", self.div)
+            self.node_list_ex, self.element_list_ex, self.name_ex, self.color_ex, self.Section_ex = self.node_list, self.element_list, self.name, self.color, self.Section
+       
         return self.node_list_ex, self.element_list_ex, self.name_ex, self.color_ex, self.Section_ex
     
     def __str__(self):
@@ -277,9 +324,9 @@ class Mesh :
 class FEM_Model() : 
     def __init__(self, mesh, E = 210E9) :
         self.mesh = mesh
-        self.mesh.node_list, self.mesh.element_list, self.mesh.name, self.mesh.color, self.mesh.Section = self.mesh.maillage()
         self.E = E
         if self.mesh.dim == 2:
+            self.mesh.node_list, self.mesh.element_list, self.mesh.name, self.mesh.color, self.mesh.Section = self.mesh.maillage()
             self.load = np.zeros([len(self.mesh.node_list),3])
             self.bc = np.eye(len(self.mesh.node_list)*3)
             self.U = np.zeros(len(self.mesh.node_list)*3)
@@ -1018,7 +1065,7 @@ class FEM_Model() :
          plt.quiver(node_i[0], node_i[1], node_i[2], vy[0], vy[1], vy[2], color='g', length=0.1, normalize=True)
          plt.quiver(node_i[0], node_i[1], node_i[2], vz[0], vz[1], vz[2], color='b', length=0.1, normalize=True)
          
-    def plot_disp_f_3D(self, scale=1e8, r=100, dir='x', pic=False, path="./"):
+    def plot_disp_f_3D(self, scale=1e0, r=80, dir='x', pic=False, path="./"):
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
         NL = self.mesh.node_list
@@ -1221,7 +1268,7 @@ def test_3d():
     f.apply_bc([1, 1, 1, 1, 1, 1], 5)
     f.apply_bc([1, 1, 1, 1, 1, 1], 6)
     f.solver_frame()
-    f.plot_disp_f_3D(dir = "sum")
+    f.plot_disp_f_3D(dir = "x")
     plt.show()
     f.U_table()
     f.R_table()
@@ -1234,8 +1281,8 @@ def validation_3d():
     m1.add_node([0, 0, 1])
     m1.add_node([0, 1, 1])
     #m1.add_node([1, 1, 1])
-    m1.add_element([1, 2], "poteau", "k", 1, 1)
-    m1.add_element([2, 3], "arba", "r", 1, 1)
+    m1.add_element([1, 2], "poteau", "k", 10, 10)
+    m1.add_element([2, 3], "arba", "r", 10, 10)
     #m1.add_element([3, 4], "arba", "r", 10, 10)
     m1.node_table()
     f = FEM_Model(m1)
@@ -1323,7 +1370,7 @@ def test_cantilever() :
     mesh = Mesh(2,[],[],debug=False)
     mesh.add_node([0,0])
     mesh.add_node([1,0])
-    mesh.add_element([1,2], "entrait", "r", 22, 10, 10)
+    mesh.add_element([1,2], "entrait", "r", 22, 10)
     f = FEM_Model(mesh)
     f.apply_load([0,-1000,0],-1)
     f.apply_bc([1,1,1],1)
@@ -1336,7 +1383,7 @@ def test_cantilever() :
     return 
 
 if __name__ == "__main__" :
-    validation_2d()
+    test_3d()
     
 '''
 TODO : 

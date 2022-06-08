@@ -10,14 +10,15 @@ import base64
 from io import BytesIO
 from matplotlib.figure import Figure
 
-from flask import Flask, render_template, flash, request#, url_for, send_file
+from flask import Flask, render_template, flash, request, url_for, send_file, jsonify
 import EC5
 import src.Code_FEM_v4 as fem
 import sys, os
 import json
-print(os.path.dirname(os.path.abspath(__file__)))
+import time
+#print(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(os.path.abspath(__file__))+'\\src')
-print(sys.path)
+#print(sys.path)
 
 from src.gen_report import rapport
 
@@ -67,10 +68,16 @@ def solive():
         q_elu, q_els = EC5.charge(bande, pp, G, Q)
         sig = EC5.calcul_solive(h, l, bande, p, q_elu, q_els)
         res = EC5.calcul_taux_trav(sig[0], sig[1], sig[2], cs, cq)
-        return render_template("solive.html", q = q_elu ,sig = sig,  res = res)
+        todo = request.form.get("todo")
+        print(todo, time.time())
+        return render_template("solive.html", q = q_elu ,sig = sig,  res = res, todo = todo)
         flash('calcul lancé !')
         #stc, sf, sc, fleche = calcul_solive(h, l, e, p, c_p, c_v)
         #sigma = [stc, sf, sc]
+    if request.is_json:
+        if request.method == 'GET':
+            second = time.time()
+            jsonify({'res' : second })
     return render_template("solive.html")
 
 @app.route('/panne')
