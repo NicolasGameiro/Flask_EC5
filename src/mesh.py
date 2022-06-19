@@ -7,11 +7,13 @@ rcParams["figure.figsize"] = (8, 6)
 rcParams['font.family'] = 'serif'
 rcParams['font.size'] = 10
 from matplotlib.patches import Rectangle, Polygon
-
+from log import logger
 
 class Mesh:
     def __init__(self, dim: int, node_list=[], element_list=[], debug=False):
         """ Initiatiolisation d'un maillage à partir de sa dimension"""
+        logger.info("Meshing...")
+        logger.info(f"Mesh dimension : {dim}D")
         self.dim = dim
         self.node_list = np.empty((0, dim))
         self.node_list_ex = np.empty((0, dim))
@@ -31,13 +33,16 @@ class Mesh:
 
         if len(node) != self.dim:
             print("Erreur : format du noeud incorrect")
+            logger.info("Erreur : format du noeud incorrect")
         else:
             found, index = self.check_node(node)
             if found == False:
                 self.node_list = np.append(self.node_list, np.array([node]), axis=0)
                 # print("noeud ajouté")
+                logger.info(f"noeud {node} ajouté")
             else:
                 print("noeud deja dans le maillage")
+                logger.info("noeud deja dans le maillage")
         if self.debug == True:
             print(self.node_list)
 
@@ -73,11 +78,13 @@ class Mesh:
     def del_node(self, node):
         if len(node) != self.dim:
             print("Erreur : format du noeud incorrect")
+            logger.info("Erreur : format du noeud incorrect")
         else:
             found, index = self.check_node(node)
             if found == True:
                 self.node_list = np.delete(self.node_list, index, 0)
                 print("noeud supprimé")
+                logger.info(f"noeud {node} supprimé")
             else:
                 print("noeud non trouvé")
             if self.debug == True:
@@ -86,6 +93,7 @@ class Mesh:
     def reset_node(self):
         self.node_list = np.array([])
         print("liste des noeuds vidée")
+        logger.info("suppression de la liste des noeuds")
         if self.debug == True:
             print(self.node_list)
         return

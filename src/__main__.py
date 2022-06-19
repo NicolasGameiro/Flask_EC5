@@ -2,6 +2,11 @@ import matplotlib.pyplot as plt
 
 from mesh import Mesh
 from model import FEM_Model
+from plot import Plot
+from log import logger
+from __version__ import __version__
+from __init__ import MODULE_NAME
+
 
 def test_3d():
     m1 = Mesh(dim=3)
@@ -90,6 +95,9 @@ def validation_2d():
 
 
 def test_2d():
+    logger.info(f"===== {MODULE_NAME} {__version__} =====")
+
+    # ----- MESHING -----
     mesh = Mesh(2, [], [], debug=False)
     p = 6.5
     h = 2.5
@@ -109,26 +117,26 @@ def test_2d():
     mesh.add_element([2, 5], "jdf", "m", 10, 10)
     mesh.add_element([2, 6], "jdf", "m", 10, 10)
     mesh.geom()
-    # mesh.node_table()
 
+    # ----- ASSEMBLING SYSTEM MATRICES -----
+    logger.info("Assembling matrices...")
+
+    # ----- SOLVING -----
+    logger.info("Solving...")
     f = FEM_Model(mesh)
     # f.apply_load([0,-1000,0],4)
     f.apply_bc([1, 1, 1], 1)
     f.apply_bc([1, 1, 1], 5)
     f.apply_distributed_load(2000, [1, 4])
     f.apply_distributed_load(2000, [4, 3])
-    f.plot_forces(type='dist', pic=True)
     f.solver_frame()
-    U, React, res = f.get_res()
-    f.plot_disp_f(dir='x', scale=1e3)
-    # f.plot_disp_f(dir='y' , scale = 1e3, pic = True)
-    # f.plot_disp_f(dir='sum', scale = 1e3, pic = True)
-    # f.plot_disp_f_ex()
-    f.U_table()
-    f.R_table()
-    # f.stress()
-    # f.rapport()
-    return
+    res = f.get_res()
+    # ----- POST-PROCESSING -----
+    logger.info("Post-processing...")
+    post = Plot(res,mesh)
+    post.plot_mesh_2D()
+    post.plot_stress()
+    plt.show()
 
 
 def test_cantilever():
@@ -147,6 +155,6 @@ def test_cantilever():
     f.S_table()
     return
 
+
 if __name__ == "__main__":
     test_2d()
-    plt.show()
