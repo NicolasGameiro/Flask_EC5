@@ -93,19 +93,20 @@ class Plot():
                 size=20, zorder=2, color="k")
         return
 
-    def plot_mesh_2D(self, size=50):
+    def plot_mesh_2D(self, size=50, node=False):
         NL = self.res['node']
         EL = self.res['element']
         x = [x for x in NL[:, 0]]
         y = [y for y in NL[:, 1]]
-        offset = size / 40000.
-        plt.scatter(x, y, c='y', s=size, zorder=5)
-        for i, location in enumerate(zip(x, y)):
-            plt.annotate(i + 1, (location[0] - offset, location[1] - offset), zorder=10)
+        if node == True:
+            offset = size / 40000.
+            plt.scatter(x, y, c='y', s=size, zorder=5)
+            for i, location in enumerate(zip(x, y)):
+                plt.annotate(i + 1, (location[0] - offset, location[1] - offset), zorder=10)
         for i in range(len(EL)):
             xi, xj = NL[EL[i, 0] - 1, 0], NL[EL[i, 1] - 1, 0]
             yi, yj = NL[EL[i, 0] - 1, 1], NL[EL[i, 1] - 1, 1]
-            plt.plot([xi, xj], [yi, yj], color=self.mesh.color[i], lw=1, linestyle='--')
+            plt.plot([xi, xj], [yi, yj], color='k', lw=1, linestyle='--', label="undeformed")
 
     def plot_mesh_3D(self, ax, size=50):
         NL = self.res['node']
@@ -145,8 +146,8 @@ class Plot():
                 pt2 = NL[elem[1] - 1]
                 self.charge_2D(pt1, pt2, elem[2])
         plt.grid()
-        plt.ylim([-1, max(x)])
-        plt.xlim([-1, max(y)])
+        plt.ylim([-1, max(NL[:, 0])])
+        plt.xlim([-1, max(NL[:, 1])])
         plt.axis('equal')
         # plt.show()
         if pic:
@@ -301,7 +302,7 @@ class Plot():
             plt.savefig(path + 'res_' + dir + '.png', format='png', dpi=200)
         return
 
-    def plot_stress(self, scale=1e4, r=100, s='sx', pic=False, path="./"):
+    def plot_stress(self, scale=1e1, r=100, s='sx', pic=False, path="./"):
         NL = self.mesh.node_list
         EL = self.mesh.element_list
         U = self.res['U']
@@ -311,10 +312,8 @@ class Plot():
         color = []
         plt.figure()
         # maillage non deforme
-        for i in range(len(EL)):
-            xi, xj = NL[EL[i, 0] - 1, 0], NL[EL[i, 1] - 1, 0]
-            yi, yj = NL[EL[i, 0] - 1, 1], NL[EL[i, 1] - 1, 1]
-            plt.plot([xi, xj], [yi, yj], color='k', lw=1, linestyle='--')
+        self.plot_mesh_2D()
+        # Maillage deforme avec coloration en fonction de la contrainte
         for i in range(len(EL)):
             n1, n2 = EL[i, 0] - 1, EL[i, 1] - 1
             if s == 'sx':
@@ -332,7 +331,7 @@ class Plot():
                 x_scatter.append(np.linspace(NL[n1, 0] + U[n1 * 3] * scale, NL[n2, 0] + U[n2 * 3] * scale, r))
                 y_scatter.append(np.linspace(NL[n1, 1] + U[n1 * 3 + 1] * scale, NL[n2, 1] + U[n2 * 3 + 1] * scale, r))
                 color.append(np.ones(r) * S[i * 5 + 2])
-            elif s == "s_vm":
+            elif s == "svm":
                 plt.title("Von Mises Stress (svm)")
                 x_scatter.append(np.linspace(NL[n1, 0] + U[n1 * 3] * scale, NL[n2, 0] + U[n2 * 3] * scale, r))
                 y_scatter.append(np.linspace(NL[n1, 1] + U[n1 * 3 + 1] * scale, NL[n2, 1] + U[n2 * 3 + 1] * scale, r))

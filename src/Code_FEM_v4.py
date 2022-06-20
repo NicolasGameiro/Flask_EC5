@@ -221,7 +221,7 @@ class FEM_Model() :
         self.lbc = []
     
     def test(self) :
-        self.mesh.geom()
+        self.mesh.plot_mesh()
         
     def apply_load(self,node_load,node):
         if len(node_load) != 3 : 

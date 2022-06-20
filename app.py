@@ -128,7 +128,7 @@ def node():
         return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list , BC = f.get_bc() , LL = f.load)
     elif request.method == "POST" and request.form['button'] == "geom" : 
         flash("node list = "+str(f.mesh.node_list) + "et element list = " + str(f.mesh.element_list))
-        f.mesh.geom(pic = True)
+        f.mesh.plot_mesh(pic = True)
         return render_template("node.html", NL = f.mesh.node_list , EL = f.mesh.element_list,  BC = f.get_bc() , LL = f.load, im = 'geom.png')
     elif request.method == "POST" and request.form['button'] == "run" : 
         flash("node list = "+str(f.mesh.node_list) + "et element list = " + str(f.mesh.element_list))

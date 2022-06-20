@@ -27,11 +27,11 @@ def projet():
     mesh.add_element([3,4], "arba", "b", 22 ,10)
     mesh.add_element([4,2], "poinçon", "m", 15 ,15)
     mesh.add_element([4,1], "arba", "b", 22 ,10)
-    mesh.geom()
+    mesh.plot_mesh()
     
     #Modele
     f = fem.FEM_Model(mesh)
-    f.mesh.geom()
+    f.mesh.plot_mesh()
     # bc
     f.apply_bc([1,1,0],1)
     f.apply_bc([1,1,0],21)

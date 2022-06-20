@@ -98,7 +98,7 @@ def test_2d():
     logger.info(f"===== {MODULE_NAME} {__version__} =====")
 
     # ----- MESHING -----
-    mesh = Mesh(2, [], [], debug=False)
+    mesh = Mesh(2, [], [], debug=True)
     p = 6.5
     h = 2.5
     mesh.add_node([0, 0])
@@ -116,7 +116,7 @@ def test_2d():
     mesh.add_element([4, 2], "poinçon", "b", 10, 10)
     mesh.add_element([2, 5], "jdf", "m", 10, 10)
     mesh.add_element([2, 6], "jdf", "m", 10, 10)
-    mesh.geom()
+    mesh.plot_mesh()
 
     # ----- ASSEMBLING SYSTEM MATRICES -----
     logger.info("Assembling matrices...")
@@ -126,7 +126,7 @@ def test_2d():
     f = FEM_Model(mesh)
     # f.apply_load([0,-1000,0],4)
     f.apply_bc([1, 1, 1], 1)
-    f.apply_bc([1, 1, 1], 5)
+    f.apply_bc([1, 1, 1], 3)
     f.apply_distributed_load(2000, [1, 4])
     f.apply_distributed_load(2000, [4, 3])
     f.solver_frame()
@@ -135,26 +135,54 @@ def test_2d():
     logger.info("Post-processing...")
     post = Plot(res,mesh)
     post.plot_mesh_2D()
-    post.plot_stress()
+    post.plot_stress(s='sx')
+    post.plot_stress(s='sf')
+    post.plot_stress(s='ty')
+    post.plot_stress(s='svm')
+    post.plot_forces()
     plt.show()
 
 
 def test_cantilever():
-    mesh = Mesh(2, [], [], debug=False)
+    mesh = Mesh(2, [], [], debug=True)
     mesh.add_node([0, 0])
-    mesh.add_node([1, 0])
-    mesh.add_element([1, 2], "entrait", "r", 22, 10)
+    mesh.add_node([10, 0])
+    mesh.add_element([1, 2], "entrait", "r", 4, 2, 9)
     f = FEM_Model(mesh)
-    f.apply_load([0, -1000, 0], -1)
+    f.apply_load([0, 225, 0], 10)
     f.apply_bc([1, 1, 1], 1)
-    f.plot_forces(type='dist', pic=False)
     f.solver_frame()
-    # f.plot_disp_f_ex(scale=1e2)
-    f.plot_disp_f(scale=1e4, dir='y')
-    f.plot_stress(scale=1e4, r=100, s='sf', pic=False, path="./")
+    f.U_table()
     f.S_table()
+    res = f.get_res()
+    # ----- POST-PROCESSING -----
+    logger.info("Post-processing...")
+    # f.plot_disp_f_ex(scale=1e2)
+    post = Plot(res,mesh)
+    post.plot_mesh_2D(node = True)
+    post.plot_stress(s='sx')
+    post.plot_stress(s='sf')
+    post.plot_stress(s='ty')
+    post.plot_stress(s='svm')
+    post.plot_forces()
+    plt.show()
     return
+
+def test_remaillage():
+    mesh = Mesh(2, debug=False)
+    mesh.add_node([0, 0])
+    mesh.add_node([0, 10])
+    mesh.add_node([10, 10])
+    mesh.add_node([20, 10])
+    mesh.add_element([1, 2], "barre", "b", 15, 15, 5)
+    mesh.add_element([2, 3], "barre", "b", 15, 15, 5)
+    mesh.add_element([3, 1], "bracon", "r", 10, 10, 4)
+    mesh.add_element([1, 4], "semelle", "g", 10, 10, 3)
+    mesh.plot_mesh()
+    mesh.maillage()
+    mesh.plot_mesh(ex=True)
+    plt.show()
 
 
 if __name__ == "__main__":
-    test_2d()
+    test_cantilever()

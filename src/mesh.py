@@ -9,6 +9,7 @@ rcParams['font.size'] = 10
 from matplotlib.patches import Rectangle, Polygon
 from log import logger
 
+
 class Mesh:
     def __init__(self, dim: int, node_list=[], element_list=[], debug=False):
         """ Initiatiolisation d'un maillage à partir de sa dimension"""
@@ -155,6 +156,8 @@ class Mesh:
         print(tab)
 
     def maillage(self):
+        #TODO : créer une table de correspondance entre le maillage maitre et eleve
+        """Fonction permettant de remailler le maillage initial"""
         last_node = 1
         for i in range(len(self.element_list)):
             el = self.element_list[i]
@@ -219,31 +222,43 @@ class Mesh:
     - Nombre d'éléments : {len(self.element_list)}
     """
 
-    def geom(self, pic=False, path="./"):
-        if self.dim == 2:
-            fig = self.geom2D(pic)
+    def plot_mesh(self, ex=False, pic=False, path="./"):
+        if ex == True:
+            NL = self.node_list_ex
+            EL = self.element_list_ex
+            name = self.name_ex
+            color = self.color_ex
+            section = self.Section_ex
         else:
-            fig = self.geom3D(pic)
+            NL = self.node_list
+            EL = self.element_list
+            name = self.name
+            color = self.color
+            section = self.Section
+        if self.dim == 2:
+            fig = self.geom2D(NL, EL, name, color, section, pic)
+        else:
+            fig = self.geom3D(NL, EL, name, color, section, pic)
         return fig
 
-    def geom2D(self, pic=False, path="./"):
+    def geom2D(self, NL, EL, name, color, section, pic=False, path="./"):
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111)
-        x = [x for x in self.node_list[:, 0]]
-        y = [y for y in self.node_list[:, 1]]
+        x = [x for x in NL[:, 0]]
+        y = [y for y in NL[:, 1]]
         size = 10
         offset = size / 40000.
         ax.scatter(x, y, c='k', marker="s", s=size, zorder=5)
         color_list = []
         for i, location in enumerate(zip(x, y)):
             ax.annotate(i + 1, (location[0] - offset, location[1] - offset), zorder=10)
-        for i in range(len(self.element_list)):
-            xi, xj = self.node_list[self.element_list[i, 0] - 1, 0], self.node_list[self.element_list[i, 1] - 1, 0]
-            yi, yj = self.node_list[self.element_list[i, 0] - 1, 1], self.node_list[self.element_list[i, 1] - 1, 1]
-            ax.plot([xi, xj], [yi, yj], color=self.color[i], lw=2, linestyle='--',
-                    label=self.name[i] if self.color[i] not in color_list else '')
+        for i in range(len(EL)):
+            xi, xj = NL[EL[i, 0] - 1, 0], NL[EL[i, 1] - 1, 0]
+            yi, yj = NL[EL[i, 0] - 1, 1], NL[EL[i, 1] - 1, 1]
+            ax.plot([xi, xj], [yi, yj], color=color[i], lw=2, linestyle='--',
+                    label=name[i] if color[i] not in color_list else '')
 
-            h = self.Section[i][0] / 100
+            h = section[i][0] / 100
 
             if xi != xj:
                 pt1 = [xi, yi - h / 2]
@@ -258,10 +273,10 @@ class Mesh:
 
             x = pt1[0], pt2[0], pt3[0], pt4[0], pt1[0]
             y = pt1[1], pt2[1], pt3[1], pt4[1], pt1[1]
-            ax.add_patch(Polygon(xy=list(zip(x, y)), color=self.color[i], fill=True, alpha=0.3, lw=0))
+            ax.add_patch(Polygon(xy=list(zip(x, y)), color=color[i], fill=True, alpha=0.3, lw=0))
             # pour verifier que la legende n'existe pas deja
-            if (self.color == self.color[i]).sum() > 1:
-                color_list.append(self.color[i])
+            if (color == color[i]).sum() > 1:
+                color_list.append(color[i])
         ax.axis('equal')
         ax.legend()
         plt.grid()
@@ -269,20 +284,20 @@ class Mesh:
             plt.savefig(path + 'geom.png', format='png', dpi=200)
         return fig
 
-    def geom3D(self, pic=False, path="./"):
+    def geom3D(self, NL, EL, name, color, section, pic=False, path="./"):
         fig = plt.figure(figsize=(8, 6))
         # plt.gca(projection='3d')
         ax = fig.add_subplot(111, projection='3d')
-        x = [x for x in self.node_list[:, 0]]
-        y = [y for y in self.node_list[:, 1]]
-        z = [z for z in self.node_list[:, 2]]
+        x = [x for x in NL[:, 0]]
+        y = [y for y in NL[:, 1]]
+        z = [z for z in NL[:, 2]]
         ax.scatter(x, y, z, c='y', s=100, zorder=1)
         for i, location in enumerate(zip(x, y)):
             ax.text(x[i], y[i], z[i], str(i + 1), size=20, zorder=2, color="k")
-        for i in range(len(self.element_list)):
-            xi, xj = self.node_list[self.element_list[i, 0] - 1, 0], self.node_list[self.element_list[i, 1] - 1, 0]
-            yi, yj = self.node_list[self.element_list[i, 0] - 1, 1], self.node_list[self.element_list[i, 1] - 1, 1]
-            zi, zj = self.node_list[self.element_list[i, 0] - 1, 2], self.node_list[self.element_list[i, 1] - 1, 2]
+        for i in range(len(EL)):
+            xi, xj = NL[EL[i, 0] - 1, 0], NL[EL[i, 1] - 1, 0]
+            yi, yj = NL[EL[i, 0] - 1, 1], NL[EL[i, 1] - 1, 1]
+            zi, zj = NL[EL[i, 0] - 1, 2], NL[EL[i, 1] - 1, 2]
             line, = ax.plot([xi, xj], [yi, yj], [zi, zj], color='k', lw=1, linestyle='--')
             line.set_label('undeformed')
         ax.set_title("Structure")
@@ -302,7 +317,12 @@ if __name__ == "__main__":
     mesh.add_node([0, 0])
     mesh.add_node([0, 10])  # inches
     mesh.add_node([10, 10])  # inches
+    mesh.add_node([20, 10])
     mesh.add_element([1, 2], "barre", "b", 15, 15, 5)
     mesh.add_element([2, 3], "barre", "b", 15, 15, 5)
-    mesh.geom()
+    mesh.add_element([3, 1], "bracon", "r", 10, 10, 4)
+    mesh.add_element([1, 4], "semelle", "g", 10, 10, 3)
+    mesh.plot_mesh()
+    mesh.maillage()
+    mesh.plot_mesh(ex=True)
     plt.show()

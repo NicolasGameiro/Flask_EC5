@@ -74,7 +74,7 @@ class FEM_Model():
         self.lbc = []
 
     def test(self):
-        self.mesh.geom()
+        self.mesh.plot_mesh()
 
     def apply_load(self, node_load, node):
         if node > len(self.mesh.node_list):
@@ -1104,7 +1104,7 @@ def test_2d():
     mesh.add_element([4, 2], "poinçon", "b", 10, 10)
     mesh.add_element([2, 5], "jdf", "m", 10, 10)
     mesh.add_element([2, 6], "jdf", "m", 10, 10)
-    mesh.geom()
+    mesh.plot_mesh()
     # mesh.node_table()
 
     f = FEM_Model(mesh)
