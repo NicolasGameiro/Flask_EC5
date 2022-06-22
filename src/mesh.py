@@ -11,7 +11,7 @@ from log import logger
 
 
 class Mesh:
-    def __init__(self, dim: int, node_list=[], element_list=[], debug=False):
+    def __init__(self, dim: int, node_list=[], element_list=[], ax = None, debug=False):
         """ Initiatiolisation d'un maillage à partir de sa dimension"""
         logger.info("Meshing...")
         logger.info(f"Mesh dimension : {dim}D")
@@ -28,6 +28,10 @@ class Mesh:
         self.Section_ex = np.empty((0, 2))
         self.div = np.empty((0, 1), dtype=int)
         self.debug = debug
+        if ax == None :
+            self.figure_axis = plt.figure(figsize=(8, 6)).add_subplot(111)
+        else :
+            self.figure_axis = ax
 
     def add_node(self, node: list):
         """ Ajout un noeud au maillage """
@@ -236,14 +240,13 @@ class Mesh:
             color = self.color
             section = self.Section
         if self.dim == 2:
-            fig = self.geom2D(NL, EL, name, color, section, pic)
+            self.figure_axis = self.geom2D(NL, EL, name, color, section, pic)
         else:
-            fig = self.geom3D(NL, EL, name, color, section, pic)
-        return fig
+            self.figure_axis = self.geom3D(NL, EL, name, color, section, pic)
+        return self.figure_axis
 
     def geom2D(self, NL, EL, name, color, section, pic=False, path="./"):
-        fig = plt.figure(figsize=(8, 6))
-        ax = fig.add_subplot(111)
+        ax = self.figure_axis
         x = [x for x in NL[:, 0]]
         y = [y for y in NL[:, 1]]
         size = 10
@@ -282,7 +285,7 @@ class Mesh:
         plt.grid()
         if pic:
             plt.savefig(path + 'geom.png', format='png', dpi=200)
-        return fig
+        return ax
 
     def geom3D(self, NL, EL, name, color, section, pic=False, path="./"):
         fig = plt.figure(figsize=(8, 6))

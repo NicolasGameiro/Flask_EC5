@@ -144,7 +144,7 @@ def test_2d():
 
 
 def test_cantilever():
-    mesh = Mesh(2, [], [], debug=True)
+    mesh = Mesh(2, [], [], debug=False)
     mesh.add_node([0, 0])
     mesh.add_node([10, 0])
     mesh.add_element([1, 2], "entrait", "r", 4, 2, 9)
