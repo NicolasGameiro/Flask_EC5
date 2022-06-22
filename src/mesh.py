@@ -174,10 +174,10 @@ class Mesh:
                 node = [x1 + vecteur_directeur[0] / div * j,
                         y1 + vecteur_directeur[1] / div * j]
                 found, index = self.check_node_ex(node)
-                print(found, node)
+                #print(found, node)
                 if found == False:
                     self.node_list_ex = np.append(self.node_list_ex, np.array([node]), axis=0)
-                    print('ajout du noeud ', len(self.node_list_ex))
+                    #print('ajout du noeud ', len(self.node_list_ex))
                     # ajout du nouvel element
                     if len(self.node_list_ex) > 1:
                         self.element_list_ex = np.append(self.element_list_ex,
@@ -185,37 +185,37 @@ class Mesh:
                         self.name_ex = np.append(self.name_ex, np.array([self.name[i]]))
                         self.color_ex = np.append(self.color_ex, np.array([self.color[i]]))
                         self.Section_ex = np.append(self.Section_ex, np.array([self.Section[i]]), axis=0)
-                        print("ajout de l'element ", self.element_list_ex[-1])
+                        #print("ajout de l'element ", self.element_list_ex[-1])
                         last_node = last_node + 1
                 else:
-                    print((node[0] == x1), (node[1] == y1))
+                    #print((node[0] == x1), (node[1] == y1))
                     if (not (node[0] == x1)) or (not (node[1] == y1)):
                         n = np.where(self.node_list_ex == node)
                         n = max(list(n[0]), key=list(n[0]).count)
-                        print("le noeud ", n + 1, "existe deja")
+                        #print("le noeud ", n + 1, "existe deja")
                         self.element_list_ex = np.append(self.element_list_ex, np.array([[last_node, n + 1]]), axis=0)
                         self.name_ex = np.append(self.name_ex, np.array([self.name[i]]))
                         self.color_ex = np.append(self.color_ex, np.array([self.color[i]]))
                         self.Section_ex = np.append(self.Section_ex, np.array([self.Section[i]]), axis=0)
-                        print("ajout de l'element ", self.element_list_ex[-1])
-            print('\n #######')
+                        #print("ajout de l'element ", self.element_list_ex[-1])
+            #print('\n #######')
 
         nb_elem = sum(self.div)
-        print("new nb_elem =", nb_elem)
+        #print("new nb_elem =", nb_elem)
 
         found, index = self.check_node_ex(node)
-        print(found, node)
+        #print(found, node)
         if found == False:
             pend(self.node_list_ex, [np.array(self.node_list[self.element_list[-1][1] - 1])], axis=0)
-        print("node list extended : ", self.node_list_ex)
-        print("element list extended :", self.element_list_ex)
-        print("section extended list :", self.Section_ex)
+        #print("node list extended : ", self.node_list_ex)
+        #print("element list extended :", self.element_list_ex)
+        #print("section extended list :", self.Section_ex)
 
         # Si il n'y a pas de subdivision des éléments ont garde le maillage d'origine
         test = np.count_nonzero(self.div - np.ones(len(self.div)))
-        print(test)
+        #print(test)
         if test == 0:
-            print("pas de maillage subdivisé", self.div)
+            #print("pas de maillage subdivisé", self.div)
             self.node_list_ex, self.element_list_ex, self.name_ex, self.color_ex, self.Section_ex = self.node_list, self.element_list, self.name, self.color, self.Section
 
         return self.node_list_ex, self.element_list_ex, self.name_ex, self.color_ex, self.Section_ex

@@ -256,6 +256,25 @@ class Plot():
         plt.axis('equal')
         return
 
+    def plot_diagram(self, type="M"):
+        Reactions = self.res["f"].flatten()
+        NL, EL = self.mesh.node_list, self.mesh.element_list
+        print(Reactions.reshape(2*len(self.mesh.element_list), 3))
+        fig, ax = plt.subplots()
+        self.plot_mesh_2D()
+        for elem in EL:
+            ni, nj = elem
+            xi, xj = NL[ni - 1][0], NL[nj - 1][0]
+            yi, yj = NL[ni - 1][1], NL[nj - 1][1]
+            if type == "N":
+                ri, rj = Reactions[(ni - 1) * 3 + 1], Reactions[(nj - 1) * 3 + 1]
+            elif type == "M":
+                ri, rj = Reactions[(ni - 1) * 3 + 2], Reactions[(nj - 1) * 3 + 2]
+            x = [xi, xi, xj, xj, xi]
+            y = [yi, yi + ri, yj + rj, yj, yi]
+            ax.add_patch(Polygon(xy=list(zip(x, y)), fill=True, color="r", alpha=0.5, lw=0))
+        return
+
     def plot_disp_f(self, scale=1e2, r=150, dir='x', pic=False, path="./"):
         NL = self.mesh.node_list
         EL = self.mesh.element_list

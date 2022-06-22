@@ -55,7 +55,7 @@ def Matrice(n, INC, E, A, Iz, rho, Kg, Mg, In):
         le = np.sqrt((INC[5, i] - INC[3, i]) ** 2 + (INC[6, i] - INC[4, i]) ** 2)
         c, s = int((INC[5, i] - INC[3, i]) / le), int((INC[6, i] - INC[4, i]) / le)
         Rot = np.array([[c, s, 0, 0],
-                        [s, c, 0, 0],
+                        [-s, c, 0, 0],
                         [0, 0, c, s],
                         [0, 0, -s, c]])
         k = E * Iz / le ** 3 * np.array([[12, 6 * le, -12, 6 * le],
@@ -84,12 +84,12 @@ plt.figure()
 plt.spy(K, marker = None, markersize=4)
 plt.show()
 
-freq = np.linspace(0, 1000, 1000, endpoint=True)
+freq = np.linspace(0, 100, 100, endpoint=True)
 wf = freq*2*np.pi
 U = np.zeros((len(wf),len(F)))
 
 for i in range(len(wf)):
-    U[:,i] = np.linalg.solve(K - wf[i]**2*M,F).T
+    U[i,:] = np.linalg.solve(K - wf[i]**2*M,F).T
 
 plt.figure()
 plt.plot(freq, 20*np.log10(np.abs(U[:,::2])))
@@ -104,4 +104,15 @@ print("frequence naturelle (Hz) : ")
 wnHz = wn/(2*np.pi)
 print(wnHz[0:6])
 
+Meff = phi.T @ M @ phi
+phi_n = phi @ np.diag(1.0/np.sqrt(np.diag(Meff)))
 
+nb_mode = 5
+coor_x = np.append(xi, xj[-1])
+Phisc = np.vstack((np.zeros((len(C), int(GL-2))),phi_n))
+
+plt.figure()
+plt.plot(coor_x,Phisc[:,0:nb_mode],'-o')
+plt.xlabel('lenght (m)')
+plt.ylabel('ampl')
+plt.show()

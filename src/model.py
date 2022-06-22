@@ -125,8 +125,8 @@ class FEM_Model():
         return R
 
     def K_elem(self, L_e, h, b):
-        S = h * b #* 1e-4
-        I = b * h ** 3 / 12 #* 1e-8
+        S = 0.7854 # h * b  # * 1e-4
+        I = 0.04909 # b * h ** 3 / 12  # * 1e-8
         K_elem = self.E / L_e * np.array([[S, 0, 0, -S, 0, 0],
                                           [0, 12 * I / L_e ** 2, 6 * I / L_e, 0, -12 * I / L_e ** 2, 6 * I / L_e],
                                           [0, 6 * I / L_e, 4 * I, 0, -6 * I / L_e, 2 * I],
@@ -196,7 +196,7 @@ class FEM_Model():
         return K_elem
 
     def changement_base(self, P, M):
-        return P.dot(M).dot(np.transpose(P))
+        return P @ M @ P.T
 
     def changement_coord(self):
         BB = []
@@ -270,7 +270,7 @@ class FEM_Model():
             x_2 = self.mesh.node_list[noeud2 - 1, 0]
             y_1 = self.mesh.node_list[noeud1 - 1, 1]
             y_2 = self.mesh.node_list[noeud2 - 1, 1]
-            L_e = np.sqrt((x_2 - x_1) ** 2 + (y_2 - y_1) ** 2)
+            L_e = self.get_length(element)
             c = (x_2 - x_1) / L_e
             s = (y_2 - y_1) / L_e
         elif self.mesh.dim == 3:
@@ -280,7 +280,7 @@ class FEM_Model():
             y_2 = self.mesh.node_list[noeud2 - 1, 1]
             z_1 = self.mesh.node_list[noeud1 - 1, 2]
             z_2 = self.mesh.node_list[noeud2 - 1, 2]
-            L_e = np.sqrt((x_2 - x_1) ** 2 + (y_2 - y_1) ** 2 + (z_2 - z_1) ** 2)
+            L_e = self.get_length(element)
             c = (x_2 - x_1) / L_e
             s = (y_2 - y_1) / L_e
         return c, s
@@ -315,7 +315,7 @@ class FEM_Model():
             rot = self.Rot(c, s)
             h, b = self.mesh.Section[i, 0], self.mesh.Section[i, 1]
             # rotation matrice elem
-            K_rot = rot.dot(self.K_elem(L_e, h, b)).dot(np.transpose(rot))
+            K_rot = rot @ self.K_elem(L_e, h, b) @ rot.T
             M_global = M_global + self.changement_base(BB[i], K_rot)
             if self.mesh.debug == True:
                 print("element " + str(i + 1) + " :")
@@ -361,26 +361,38 @@ class FEM_Model():
             K_glob = self.assemblage_2D()
         elif self.mesh.dim == 3:
             K_glob = self.assemblage_3D()
-        K_glob_r = np.transpose(self.bc).dot(K_glob).dot(self.bc)
-        ### en cas de matrice singuliaire
-        m = 0
-        K_glob_r = K_glob_r + np.eye(K_glob_r.shape[1]) * m
-        ###
+        K_glob_r = self.bc.T @ K_glob @ self.bc
         F = np.vstack(self.load.flatten())
-        F_r = np.transpose(self.bc).dot(F)
-        U_r = np.linalg.inv(K_glob_r).dot(F_r)
-        self.U = self.bc.dot(U_r)
-        self.React = K_glob.dot(self.U) - F
+        F_r = self.bc.T @ F
+        U_r = np.linalg.inv(K_glob_r) @ F_r
+        self.U = self.bc @ U_r
+        self.React = K_glob @ self.U - F
         self.S = self.stress()
 
-    def get_local(self, element):
-        """Retourne le vecteur dans le repère local à partir du vecteur dans le repère global"""
+    def get_local_U(self, element):
+        """Retourne le vecteur deplacement dans le repère local à partir du vecteur dans le repère global"""
+        i, j = element[0] - 1, element[1] - 1
+        c, s = self.get_angle(element)
+        rot = self.Rot(c, s)
+        global_X = np.concatenate((self.U[i * 3:i * 3 + 3], self.U[j * 3:j * 3 + 3]), axis=None)
+        local_X = rot.T @ global_X
+        return local_X
+
+    def get_local_F(self, element):
+        """Retourne le vecteur force dans le repère local à partir du vecteur dans le repère global"""
         i, j = element[0] - 1, element[1] - 1
         c, s = self.get_angle(element)
         rot = self.Rot(c, s)
         global_X = np.concatenate((self.U[i * 3:i * 3 + 3], self.U[j * 3:j * 3 + 3]), axis=None)
         local_X = np.transpose(rot).dot(global_X)
-        return local_X
+        local_U = self.get_local_U(element)
+        L_e = self.get_length(element)
+        rot = self.Rot(c, s)
+        h, b = 1, 1 # self.mesh.Section[i, 0], self.mesh.Section[i, 1]
+        # rotation matrice elem
+        k = self.K_elem(L_e, h, b)
+        local_f = k @ local_U
+        return local_f
 
     def calcul_stresses(self, elem):
         # TODO : bien prendre les valeurs dans le repère local de l'element
@@ -390,7 +402,7 @@ class FEM_Model():
         node_i, node_j = elem[0] - 1, elem[1] - 1
         L = self.get_length(elem)
         U = self.U
-        U = self.get_local(elem)
+        U = self.get_local_U(elem)
         G = self.E / 2 / (1 + 0.3)
         h, b = 4, 2  # self.mesh.Section[i,0], self.mesh.Section[i,1]
         Iy = b * h ** 3 / 12
@@ -398,8 +410,8 @@ class FEM_Model():
         k = 5 / 6
         if self.mesh.dim == 2:
             epsilon_x = (U[3] - U[0]) / L
-            sigma_x = self.E * epsilon_x #/ 1E6
-            sigma_fy = self.E * h * (U[5] - U[2]) / L #/ 1E6
+            sigma_x = self.E * epsilon_x  # / 1E6
+            sigma_fy = self.E * h * (U[5] - U[2]) / L  # / 1E6
             tau_y = np.array([0]) / 1E6
             sigma_VM = np.sqrt((sigma_x + sigma_fy) ** 2 + 3 * (tau_y) ** 2)
             sigma_T = np.sqrt((sigma_x + sigma_fy) ** 2 + 4 * (tau_y) ** 2) / 1E6
@@ -445,10 +457,20 @@ class FEM_Model():
         return self.S
 
     def get_res(self):
+        # local vector
+        F_local = np.empty((0,len(self.mesh.node_list) * 3))
+        U_local = np.empty((0,len(self.mesh.node_list) * 3))
+        for el in self.mesh.element_list:
+            fl = self.get_local_F(el)
+            ul = self.get_local_U(el)
+            F_local = np.concatenate((F_local, [fl]), axis=None)
+            U_local = np.concatenate((U_local, [ul]), axis=None)
         self.res = {}
         self.res['U'] = self.U
+        self.res['u'] = U_local
         self.res['React'] = self.React
         self.res['F'] = self.load
+        self.res['f'] = F_local
         self.res['stress'] = self.S
         self.res['node'] = self.mesh.node_list
         self.res['element'] = self.mesh.element_list
@@ -484,9 +506,9 @@ class FEM_Model():
             tab.field_names = ["Node", "Fx (N)", "Fy (N)", "Mz (N.m)"]
             for i in range(len(self.mesh.node_list)):
                 tab.add_row([int(i + 1),
-                             np.format_float_scientific(self.React[i][0], precision=2, exp_digits=2),
-                             np.format_float_scientific(self.React[i + 1][0], precision=2, exp_digits=2),
-                             np.format_float_scientific(self.React[i + 2][0], precision=2, exp_digits=2)])
+                             np.format_float_scientific(self.React[i * 3][0], precision=2, exp_digits=2),
+                             np.format_float_scientific(self.React[i * 3 + 1][0], precision=2, exp_digits=2),
+                             np.format_float_scientific(self.React[i * 3 + 2][0], precision=2, exp_digits=2)])
         else:
             tab.field_names = ["Node", "Fx", "Fy", "Fz", "Mx", "My", "Mz"]
             for i in range(len(self.mesh.node_list)):

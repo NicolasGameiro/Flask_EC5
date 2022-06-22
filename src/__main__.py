@@ -147,25 +147,31 @@ def test_cantilever():
     mesh = Mesh(2, [], [], debug=False)
     mesh.add_node([0, 0])
     mesh.add_node([10, 0])
-    mesh.add_element([1, 2], "entrait", "r", 4, 2, 9)
+    mesh.add_element([1, 2], "entrait", "r", 4, 2, 5)
     f = FEM_Model(mesh)
-    f.apply_load([0, 225, 0], 10)
+    f.apply_load([0, -1000, 0], 5)
+    print("load" , f.load)
     f.apply_bc([1, 1, 1], 1)
     f.solver_frame()
     f.U_table()
+    f.R_table()
     f.S_table()
     res = f.get_res()
     # ----- POST-PROCESSING -----
     logger.info("Post-processing...")
     # f.plot_disp_f_ex(scale=1e2)
     post = Plot(res,mesh)
-    post.plot_mesh_2D(node = True)
+    #post.plot_mesh_2D(node = True)
+    post.plot_forces()
+    post.plot_diagram()
+    plt.show()
+    """
     post.plot_stress(s='sx')
     post.plot_stress(s='sf')
     post.plot_stress(s='ty')
     post.plot_stress(s='svm')
-    post.plot_forces()
-    plt.show()
+    
+    """
     return
 
 def test_remaillage():
