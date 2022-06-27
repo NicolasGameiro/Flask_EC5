@@ -22,7 +22,7 @@ from prettytable import PrettyTable as pt
 
 
 class FEM_Model():
-    def __init__(self, mesh, E=10E6):
+    def __init__(self, mesh, E=2.1E9):
         self.mesh = mesh
         self.E = E
         if self.mesh.dim == 2:
@@ -125,8 +125,8 @@ class FEM_Model():
         return R
 
     def K_elem(self, L_e, h, b):
-        S = 0.7854 # h * b  # * 1e-4
-        I = 0.04909 # b * h ** 3 / 12  # * 1e-8
+        S = h * b  # * 1e-4
+        I = b * h ** 3 / 12  # * 1e-8
         K_elem = self.E / L_e * np.array([[S, 0, 0, -S, 0, 0],
                                           [0, 12 * I / L_e ** 2, 6 * I / L_e, 0, -12 * I / L_e ** 2, 6 * I / L_e],
                                           [0, 6 * I / L_e, 4 * I, 0, -6 * I / L_e, 2 * I],

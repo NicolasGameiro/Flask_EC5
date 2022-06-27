@@ -146,10 +146,10 @@ def test_2d():
 def test_cantilever():
     mesh = Mesh(2, [], [], debug=False)
     mesh.add_node([0, 0])
-    mesh.add_node([10, 0])
-    mesh.add_element([1, 2], "entrait", "r", 4, 2, 5)
+    mesh.add_node([1, 0])
+    mesh.add_element([1, 2], "entrait", "r", 0.22, 0.1, 10)
     f = FEM_Model(mesh)
-    f.apply_load([0, -1000, 0], 5)
+    f.apply_load([0, -1000, 0], 11)
     print("load" , f.load)
     f.apply_bc([1, 1, 1], 1)
     f.solver_frame()

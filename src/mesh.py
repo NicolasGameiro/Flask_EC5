@@ -227,6 +227,7 @@ class Mesh:
     """
 
     def plot_mesh(self, ex=False, pic=False, path="./"):
+        self.figure_axis = plt.figure(figsize=(8, 6)).add_subplot(111)
         if ex == True:
             NL = self.node_list_ex
             EL = self.element_list_ex
@@ -240,10 +241,10 @@ class Mesh:
             color = self.color
             section = self.Section
         if self.dim == 2:
-            self.figure_axis = self.geom2D(NL, EL, name, color, section, pic)
+            self.figure_axis, pts = self.geom2D(NL, EL, name, color, section, pic)
         else:
             self.figure_axis = self.geom3D(NL, EL, name, color, section, pic)
-        return self.figure_axis
+        return self.figure_axis, pts
 
     def geom2D(self, NL, EL, name, color, section, pic=False, path="./"):
         ax = self.figure_axis
@@ -251,7 +252,7 @@ class Mesh:
         y = [y for y in NL[:, 1]]
         size = 10
         offset = size / 40000.
-        ax.scatter(x, y, c='k', marker="s", s=size, zorder=5)
+        pts = ax.scatter(x, y, c='k', marker="s", s=size, zorder=5)
         color_list = []
         for i, location in enumerate(zip(x, y)):
             ax.annotate(i + 1, (location[0] - offset, location[1] - offset), zorder=10)
@@ -285,7 +286,7 @@ class Mesh:
         plt.grid()
         if pic:
             plt.savefig(path + 'geom.png', format='png', dpi=200)
-        return ax
+        return ax, pts
 
     def geom3D(self, NL, EL, name, color, section, pic=False, path="./"):
         fig = plt.figure(figsize=(8, 6))
